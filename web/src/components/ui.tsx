@@ -44,7 +44,7 @@ export function Page({ title, subtitle, back, trailing, children, wide = false, 
         </div>
       </header>
       <div className={`mx-auto ${wide ? "max-w-[1400px]" : "max-w-[980px]"} px-4 lg:px-8 print-full`}>
-        <div className="pt-1 pb-4">
+        <div className="pt-2 pb-6">
           {brand ? (
             <div className="flex items-center gap-3">
               <span className="lg:hidden"><Logo size={44} /></span>
@@ -56,7 +56,7 @@ export function Page({ title, subtitle, back, trailing, children, wide = false, 
           ) : (
             <h1 className="t-large">{title}</h1>
           )}
-          {subtitle && <div className="t-sub text-label-2 mt-1 max-w-[720px]">{subtitle}</div>}
+          {subtitle && <div className="t-callout text-label-2 mt-1.5 max-w-[560px]">{subtitle}</div>}
           <div ref={sentinel} />
         </div>
         {toolbar && <div className="no-print mb-4">{toolbar}</div>}
@@ -104,7 +104,7 @@ export function Row({ href, onClick, icon, iconBg, title, subtitle, detail, chev
   const inner = (
     <>
       {icon && (
-        <span className="grid place-items-center w-[29px] h-[29px] rounded-[7px] text-white shrink-0" style={{ background: iconBg ?? "var(--tint)" }}>
+        <span className="grid place-items-center w-[32px] h-[32px] rounded-[10px] shrink-0" style={{ color: iconBg ?? "var(--tint)", background: `color-mix(in srgb, ${iconBg ?? "var(--tint)"} 14%, transparent)` }}>
           <Icon name={icon} size={18} stroke={2} />
         </span>
       )}
@@ -118,7 +118,7 @@ export function Row({ href, onClick, icon, iconBg, title, subtitle, detail, chev
     </>
   );
   const cls = `row ${icon ? "indent" : ""} ${href || onClick ? "pressable" : ""}`;
-  const style = icon ? ({ "--indent": "57px" } as React.CSSProperties) : undefined;
+  const style = icon ? ({ "--indent": "60px" } as React.CSSProperties) : undefined;
   if (href && external) return <a href={href} target="_blank" rel="noreferrer" className={cls} style={style}>{inner}</a>;
   if (href) return <Link href={href} className={cls} style={style}>{inner}</Link>;
   if (onClick) return <button onClick={onClick} className={`${cls} w-full text-left`} style={style}>{inner}</button>;
@@ -127,7 +127,7 @@ export function Row({ href, onClick, icon, iconBg, title, subtitle, detail, chev
 
 export function Card({ children, className = "", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div onClick={onClick} className={`bg-bg-2 rounded-2xl p-4 ${onClick ? "pressable cursor-pointer active:scale-[0.99]" : ""} ${className}`}>
+    <div onClick={onClick} className={`bg-bg-2 rounded-[20px] p-4 ring-[0.5px] ring-sep ${onClick ? "pressable cursor-pointer active:scale-[0.99]" : ""} ${className}`}>
       {children}
     </div>
   );
@@ -218,7 +218,7 @@ export function DirectionGlyph({ d }: { d: string | null }) {
 
 export function Stat({ value, label, icon, color }: { value: React.ReactNode; label: string; icon?: IconName; color?: string }) {
   return (
-    <div className="bg-bg-2 rounded-2xl p-4 flex flex-col gap-2 min-w-0">
+    <div className="bg-bg-2 rounded-[20px] p-4 ring-[0.5px] ring-sep flex flex-col gap-2 min-w-0">
       {icon && <span style={{ color: color ?? "var(--tint)" }}><Icon name={icon} size={22} /></span>}
       <div className="text-[28px] leading-none font-bold tracking-tight">{value}</div>
       <div className="t-foot text-label-2">{label}</div>

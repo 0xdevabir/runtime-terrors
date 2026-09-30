@@ -291,7 +291,8 @@ def graph_node(nid: str):
     pids = sorted({p for e in edges for p in e["papers"]}, key=lambda p: -int(kb.paper[p].get("year") or 0))
     ent = next((e for e in kb.entities if e["id"] == nid), {})
     neigh = sorted(({"id": e["target"] if e["source"] == nid else e["source"], "relation": e["relation"], "edge": e["id"],
-                     "papers": e["paper_count"], "majority": e["majority"]} for e in edges), key=lambda x: -x["papers"])
+                     "papers": e["paper_count"], "majority": e["majority"], "outgoing": e["source"] == nid} for e in edges),
+                   key=lambda x: -x["papers"])
     for n in neigh:
         n["label"] = kb.label(n["id"])
     return kb.node[nid] | {"synonyms": ent.get("synonyms", []), "neighbors": neigh[:30],

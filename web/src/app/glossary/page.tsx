@@ -10,7 +10,7 @@ export default function GlossaryPage() {
   const [q, setQ] = useState("");
   const rows = (data ?? []).filter((t) => !q || `${t.term} ${t.definition}`.toLowerCase().includes(q.toLowerCase()));
   return (
-    <Page title="Glossary" subtitle="Plain-language definitions of combustion and freefall-fire terms. The Student view links these in answers."
+    <Page title="Glossary" subtitle="Key terms in plain words."
       toolbar={<SearchField value={q} onChange={setQ} placeholder="Find a term" />}>
       {error ? <ErrorNote error={error} /> : !data ? <LoadingList rows={8} /> : (
         <div className="group mb-10">

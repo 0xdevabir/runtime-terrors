@@ -106,15 +106,18 @@ function Graph() {
       const theme = (c?: number) => (c == null ? ink2 : cssVar(`--series-${(c % 8) + 1}`));
       const maxP = Math.max(...data.nodes.map((n) => n.papers), 1);
       const maxE = Math.max(...data.edges.map((e) => e.paper_count), 1);
+      // label only the ~18 biggest concepts up front; the rest appear on hover, tap or zoom
+      const labelMin = [...data.nodes].map((n) => n.papers).sort((a, b) => b - a)[Math.min(17, data.nodes.length - 1)] ?? 0;
       cyRef.current?.destroy();
       const cy = cytoscape({
         container: box.current,
         elements: [
-          ...data.nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: 14 + 42 * Math.sqrt(n.papers / maxP), color: colorBy === "theme" ? theme(n.community) : col[n.type] ?? ink2 } })),
+          ...data.nodes.map((n) => ({ classes: n.papers >= labelMin || lit.has(n.id) || n.id === focus ? "named" : "", data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: 14 + 42 * Math.sqrt(n.papers / maxP), color: colorBy === "theme" ? theme(n.community) : col[n.type] ?? ink2 } })),
           ...data.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, w: 1 + 4 * Math.sqrt(e.paper_count / maxE), verb: verb(e.relation, e.majority), color: e.relation === "affects" && e.majority && dir[e.majority] ? dir[e.majority] : faint, rel: e.relation } })),
         ],
         style: [
-          { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(color)", "border-width": 2, "border-color": surface, label: "data(label)", "font-size": 11, "font-weight": 500, "font-family": font, color: ink, "text-valign": "bottom", "text-margin-y": 5, "text-wrap": "ellipsis", "text-max-width": "120px", "text-outline-color": surface, "text-outline-width": 2.5, "min-zoomed-font-size": 8, "transition-property": "opacity", "transition-duration": 150 } as never },
+          { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(color)", "border-width": 2, "border-color": surface, label: "", "font-size": 11, "font-weight": 500, "font-family": font, color: ink, "text-valign": "bottom", "text-margin-y": 5, "text-wrap": "ellipsis", "text-max-width": "120px", "text-outline-color": surface, "text-outline-width": 2.5, "min-zoomed-font-size": 8, "transition-property": "opacity", "transition-duration": 150 } as never },
+          { selector: "node.named, node.talk, node.zoomed", style: { label: "data(label)" } },
           { selector: "edge", style: { width: "data(w)", "line-color": "data(color)", "curve-style": "bezier", opacity: 0.45, "target-arrow-shape": "none", "transition-property": "opacity", "transition-duration": 150 } as never },
           { selector: "edge[rel = 'affects']", style: { "target-arrow-shape": "triangle", "target-arrow-color": "data(color)", "arrow-scale": 0.8, opacity: 0.7 } },
           // show the plain-language verb on links that are in focus
@@ -124,7 +127,7 @@ function Graph() {
           { selector: "node:selected", style: { "border-color": tint, "border-width": 4 } },
           { selector: "edge:selected", style: { opacity: 1, "line-color": tint, "target-arrow-color": tint } },
         ],
-        layout: { name: "fcose", animate: true, animationDuration: 600, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true } as never,
+        layout: { name: "fcose", animate: true, animationDuration: 600, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true, fit: true, padding: 40 } as never,
         wheelSensitivity: 0.25,
         minZoom: 0.2,
         maxZoom: 3,
@@ -132,6 +135,7 @@ function Graph() {
       let pinned = false;
       const spotlight = (els: Collection) => {
         cy.elements().addClass("dim").removeClass("talk");
+        els.nodes().addClass("talk");
         els.removeClass("dim");
         els.edges().addClass("talk");
       };
@@ -163,6 +167,7 @@ function Graph() {
       });
       cy.on("tap", (e) => { if (e.target === cy) { pinned = false; reset(); setSel(null); } });
       cy.on("unpin", () => { pinned = false; reset(); });
+      cy.on("zoom", () => { const z = cy.zoom() > 1.3; if (z !== cy.scratch("_z")) { cy.scratch("_z", z); cy.nodes().toggleClass("zoomed", z); } });
       cyRef.current = cy;
     })();
     return () => { destroyed = true; };

@@ -37,7 +37,7 @@ function Insights() {
     .sort((a, b) => b.n_papers - a.n_papers);
 
   return (
-    <Page title="Consensus & Conflicts" subtitle="Where independent studies agree, and where they don't — with the evidence side by side."
+    <Page title="Agree & Disagree" subtitle="Where studies agree — and where they don’t."
       toolbar={
         <div className="space-y-3">
           <Segmented value={status} onChange={setStatus}

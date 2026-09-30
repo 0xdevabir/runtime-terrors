@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Icon, IconName } from "./Icon";
 import { Logo } from "./Logo";
 import { PERSONAS, Theme, usePrefs } from "./prefs";
@@ -49,7 +49,14 @@ function Preferences() {
     <div className="space-y-3">
       <div>
         <div className="t-cap font-semibold text-label-2 mb-1.5 px-1">Answers tuned for</div>
-        <Segmented size="sm" value={persona} onChange={setPersona} options={PERSONAS.map((p) => ({ value: p.id, label: p.short }))} />
+        <div className="grid grid-cols-2 gap-1 p-[2px] rounded-[10px] bg-fill">
+          {PERSONAS.map((p) => (
+            <button key={p.id} onClick={() => setPersona(p.id)} title={p.blurb} aria-pressed={persona === p.id}
+              className={`h-7 rounded-[8px] t-foot font-medium transition-all ${persona === p.id ? "bg-[var(--seg)] shadow-[0_2px_6px_rgba(0,0,0,0.1)]" : "text-label-2 hover:text-label"}`}>
+              {p.short}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <div className="t-cap font-semibold text-label-2 mb-1.5 px-1">Appearance</div>
@@ -66,10 +73,9 @@ function Preferences() {
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const inMore = MORE.some((m) => active(path, m.href));
-  const [moreOpen, setMoreOpen] = useState(inMore);
+  const [moreToggled, setMoreOpen] = useState(false);
+  const moreOpen = inMore || moreToggled;
   const [sheet, setSheet] = useState(false);
-  useEffect(() => { if (inMore) setMoreOpen(true); }, [inMore]);
-  useEffect(() => setSheet(false), [path]);
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -121,7 +127,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Sheet open={sheet} onClose={() => setSheet(false)} title="More">
         <div className="grid grid-cols-2 gap-2.5 mb-6">
           {[...PRIMARY.slice(4), ...MORE].map((it) => (
-            <Link key={it.href} href={it.href}
+            <Link key={it.href} href={it.href} onClick={() => setSheet(false)}
               className={`rounded-2xl p-3.5 bg-bg-2 ring-[0.5px] ring-sep btn-press ${active(path, it.href) ? "ring-2 ring-tint" : ""}`}>
               <span className="text-tint"><Icon name={it.icon} size={22} /></span>
               <div className="t-sub font-semibold mt-2">{it.label}</div>

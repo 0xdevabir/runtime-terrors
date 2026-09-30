@@ -26,7 +26,7 @@ function Compare() {
   const setIds = (next: string[]) => router.replace(next.length ? `/compare?ids=${next.join(",")}` : "/compare");
   const { data, error } = useApi<Cmp>(ids.length >= 2 ? `/compare?ids=${ids.join(",")}` : null);
   return (
-    <Page wide title="Compare reports" subtitle="Test design, fuels, conditions and findings side by side, with the effects the reports share and whether they agree.">
+    <Page wide title="Compare reports" subtitle="Pick reports and see them side by side.">
       <Picker ids={ids} onChange={setIds} />
       {ids.length < 2 ? null : error ? <ErrorNote error={error} /> : !data ? <LoadingList rows={6} /> : <Table d={data} onRemove={(id) => setIds(ids.filter((x) => x !== id))} />}
     </Page>

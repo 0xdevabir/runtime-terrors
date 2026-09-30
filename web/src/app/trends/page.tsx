@@ -40,7 +40,7 @@ export default function TrendsPage() {
   }, [data, dim]);
 
   return (
-    <Page wide title="Research Trends" subtitle="How the focus of microgravity combustion and fire-safety research has shifted over time.">
+    <Page wide title="Research Trends" subtitle="How research focus has shifted over the years.">
       {error ? <ErrorNote error={error} /> : !data ? <Skeleton h={360} /> : (
         <>
           <div className="grid lg:grid-cols-3 gap-4 mb-8">

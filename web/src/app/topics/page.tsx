@@ -27,7 +27,7 @@ function TopicList() {
   const { data, error } = useApi<Takeaways>("/takeaways");
   const rows = Object.entries(data ?? {}).sort((a, b) => b[1].n_papers - a[1].n_papers);
   return (
-    <Page title="Topics" subtitle="What the corpus establishes, disputes and leaves open for each flame geometry, generated from the evidence groups.">
+    <Page title="Topics" subtitle="What’s known, disputed and still open — by flame type.">
       {error ? <ErrorNote error={error} /> : !data ? <LoadingList rows={6} /> : (
         <div className="grid md:grid-cols-2 gap-3 pb-10">
           {rows.map(([tid, t]) => (

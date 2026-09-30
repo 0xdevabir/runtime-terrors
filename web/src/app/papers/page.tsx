@@ -56,7 +56,7 @@ function Papers() {
   const active = Object.entries(facet).filter(([, v]) => v) as ["fuel" | "condition" | "geometry", string][];
 
   return (
-    <Page title="Reports" subtitle="Every NASA NTRS report in the microgravity combustion and fire-safety corpus, searchable by meaning and filterable by what was burned and how."
+    <Page title="Reports" subtitle="Every NASA report in the library. Search by meaning, not just keywords."
       trailing={<a href={`${API}/api/export/papers?format=csv`} className="t-sub text-tint" title="Download all reports as CSV">Export CSV</a>}
       toolbar={
         <div className="space-y-3">

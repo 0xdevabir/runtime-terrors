@@ -167,12 +167,12 @@ function Intro({ onAsk }: { onAsk: (q: string) => void }) {
   ];
   return (
     <div className="pt-10 pb-6 text-center">
-      <div className="mx-auto w-16 h-16 rounded-[18px] grid place-items-center text-white mb-4" style={{ background: "linear-gradient(145deg,#5e5ce6,#007aff)" }}>
+      <div className="mx-auto w-16 h-16 rounded-[20px] grid place-items-center text-tint bg-accent/35 mb-4">
         <Icon name="sparkles" size={34} />
       </div>
       <h1 className="t-title1">Ask the literature</h1>
       <p className="t-sub text-label-2 mt-2 max-w-[520px] mx-auto">
-        Every answer is grounded in retrieved passages from NASA microgravity combustion and fire-safety reports. Tap a citation to read the exact source.
+        Answers come straight from NASA reports. Tap any number to see the source.
       </p>
       <div className="grid sm:grid-cols-2 gap-2 mt-8 text-left">
         {ex.map((q) => (

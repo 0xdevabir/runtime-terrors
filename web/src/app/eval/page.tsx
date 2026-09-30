@@ -39,7 +39,7 @@ export default function EvalPage() {
   const rows = (data?.rows ?? []).filter((r) => filter === "all" || (r.type === "answerable" ? !r["hit@5"] || !r.correct_refusal : !r.correct_refusal));
 
   return (
-    <Page title="Trust & Evaluation" subtitle="How the engine is checked: a fixed question set scored on retrieval, refusal and citation accuracy, plus safeguards on every answer.">
+    <Page title="Trust & Evaluation" subtitle="How we check that answers are accurate and cited.">
       <Section header="Safeguards on every answer">
         <Row icon="quote" iconBg="var(--indigo)" title="Grounded in retrieved passages" subtitle="Answers are built only from passages retrieved from the corpus, each cited as [n] and tappable." />
         <Row icon="checkCircle" iconBg="var(--green)" title="Citation check" subtitle="After each answer, every citation is verified against the retrieved sources; invalid ones are struck through in red." />

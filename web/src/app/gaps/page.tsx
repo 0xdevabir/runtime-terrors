@@ -52,7 +52,7 @@ export default function GapsPage() {
   const label = (id: string) => m?.rows.find((r) => r.id === id)?.label ?? m?.cols.find((c) => c.id === id)?.label ?? id;
 
   return (
-    <Page wide title="Evidence Gaps" subtitle="How many reports test each combination. Empty and pale cells are where the literature is thin — candidates for the next experiment."
+    <Page wide title="Evidence Gaps" subtitle="Pale or empty squares = barely studied. That’s where to look next."
       toolbar={
         <div className="flex flex-wrap items-center gap-3">
           <Segmented className="w-[300px]" value={dim} onChange={setDim} options={(Object.keys(DIM_LABEL) as Dim[]).map((d) => ({ value: d, label: DIM_LABEL[d] }))} />

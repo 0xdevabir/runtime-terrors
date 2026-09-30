@@ -1,189 +1,267 @@
-# Emberfall — Flame in Freefall
+<div align="center">
 
-**NASA Space Apps Challenge** · *AI-Powered Fire Safety Insights from Microgravity Combustion Data* · Team **runtime-terror**
+<img src="web/public/brand/emberfall-icon.svg" alt="Emberfall" width="112" />
 
-> What do we actually know about fire in freefall — how sure are we, and where are the holes for spacecraft fire safety?
+# Emberfall
 
-**Emberfall** turns decades of NASA microgravity combustion and spacecraft fire-safety literature into a cited, conflict-aware knowledge engine. Ask grounded questions, explore the evidence graph, surface contradictions and coverage gaps, and generate mission fire-risk briefings for ISS, Artemis, and Mars.
+### Flame in Freefall: 70 years of NASA fire-safety research in one cited, mission-aware knowledge engine
 
-| | |
-|---|---|
-| **Live demo** | *[add hosted URL]* |
-| **Demo video** | *[add 2-minute YouTube / Space Apps link]* |
-| **Repository** | https://github.com/0xdevabir/runtime-terrors |
-| **License** | MIT (code) · NTRS reports remain under each document’s distribution terms |
+[![NASA Space Apps Challenge](https://img.shields.io/badge/NASA-Space%20Apps%20Challenge-0B3D91?style=for-the-badge&logo=nasa&logoColor=white)](https://www.spaceappschallenge.org/)
+[![Data: NTRS](https://img.shields.io/badge/Data-NASA%20NTRS-FC3D21?style=for-the-badge)](https://ntrs.nasa.gov/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f?style=for-the-badge)](./LICENSE)
 
----
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![Citation validity](https://img.shields.io/badge/citation%20validity-100%25-success)
+![Refusal accuracy](https://img.shields.io/badge/refusal%20accuracy-100%25-success)
 
-## The problem
+**Team runtime-terror** · *AI-Powered Fire Safety Insights from Microgravity Combustion Data*
 
-Spacecraft fire safety rests on a large, scattered literature: drop-tower seconds, parabolic flights, Shuttle and ISS experiments (BASS, FLEX, ACME), and long-duration Cygnus burns (Saffire). Habitat architects planning Artemis (elevated O₂, reduced pressure, partial gravity) and Mars transit cannot easily answer:
+[Live demo](#) · [Demo video](#) · [Space Apps project page](#) · [Quick start](#-run-it-in-3-commands)
 
-- What does the evidence say for *our* cabin atmosphere and gravity profile?
-- Where do studies **agree**, where do they **contradict**, and **why**?
-- Which risks are well tested in orbit vs only in short freefall or 1g?
-- What should we prioritize next?
-
-Reading ~1,300 NTRS reports by hand is not a workflow. Chat-with-PDFs without citation guards, conflict detection, or mission context is not enough for safety-critical research prioritization.
-
-## Our solution
-
-Emberfall is an end-to-end pipeline + web app that:
-
-1. **Ingests** NASA Technical Reports Server (NTRS) microgravity combustion / fire-safety reports (metadata + NTRS-extracted full text).
-2. **Extracts** structured findings with a **verbatim quote guard** — every finding is a real sentence from a report.
-3. **Normalizes** fuels, conditions, flame geometries, outcomes, species, and countermeasures into a shared ontology.
-4. **Builds** an in-memory knowledge base: hybrid search indexes, evidence graph, consensus/conflicts, gap matrices, trends, hypotheses, and mission risk maps.
-5. **Serves** an iOS-style web UI: Ask (cited Q&A), Reports, Graph, Insights, Gaps, Hypotheses, Mission briefings, Glossary, and a Trust/eval page.
-
-**Hero workflow:** a habitat architect selects *Artemis* (or enters custom O₂ %, pressure, freefall / partial-g days) and receives a ranked fire-safety briefing — evidence strength, countermeasures, open conflicts, coverage gaps — exportable as PDF. This is a **research-prioritization aid**, not a certified hazard analysis.
+</div>
 
 ---
 
-## Who it’s for
+> **Why this challenge?** Fire in space behaves differently. Without gravity there is no buoyancy, so flames don't rise. They grow into slow, blue, near-invisible spheres, and they can keep burning in conditions where they would go out on Earth. Crews can't evacuate, and the air supply is a closed loop. Artemis habitats plan to run with **more oxygen at lower pressure**, which makes materials easier to ignite. NASA has studied this since the 1950s, but the findings are spread across **more than a thousand technical reports**.
+>
+> **Emberfall answers one question:** *What do we actually know about fire in freefall, how sure are we, and where are the gaps that matter for crew safety?*
 
-| Persona | What they open first | How answers are framed |
+<table>
+<tr>
+<td align="center"><h2>1,334</h2>NASA NTRS reports</td>
+<td align="center"><h2>20,145</h2>indexed passages</td>
+<td align="center"><h2>1,812</h2>quote-verified findings</td>
+<td align="center"><h2>58</h2>open contradictions found</td>
+<td align="center"><h2>1955–2026</h2>literature span</td>
+</tr>
+</table>
+
+---
+
+## 🚀 The challenge and how we answer it
+
+The challenge asks for an AI tool that turns NASA's microgravity combustion data into fire-safety insights. The table below maps each part of that ask to what we built.
+
+| The challenge asks for… | Emberfall delivers… | Where |
 |---|---|---|
-| **Combustion scientist** | Ask · Graph · Hypotheses | Methods-aware; species/soot; test counts and freefall time |
-| **Safety manager** | Gaps · Insights · Trends | Portfolio view: well studied / thin / contradictory |
-| **Habitat architect** | Mission briefing | Risk → evidence → countermeasure, plain language |
-| **Student / public** | Ask · Glossary · Reports (L1 summaries) | Accessible language with links deeper into the evidence |
+| Make microgravity combustion research **accessible** | Cited Q&A over 1,334 NTRS reports, plus plain-language summaries and a glossary | `Ask` · `Reports` · `Glossary` |
+| **AI-powered insights**, not just search | Automatic consensus/conflict detection, coverage-gap matrices, literature-based hypotheses | `Insights` · `Gaps` · `Hypotheses` |
+| Relevance to **spacecraft fire safety** | 13 NASA-style fire risks scored against the evidence for ISS / Artemis / Mars cabin atmospheres | `Mission` |
+| **Trustworthy** outputs | Every sentence is cited and checked; a verbatim quote guard; off-topic or thin-evidence questions are refused | `Trust` (`/eval`) |
+| Serve **scientists, engineers, and the public** | Four personas, each with its own entry point and framing | [Who it's for](#-who-its-for) |
+
+**Hero workflow:** a habitat architect picks **Artemis** (or enters a custom O₂ %, pressure, and number of freefall / partial-g days) and gets back a ranked fire-safety briefing. Each risk comes with its evidence strength, supporting quotes, countermeasures, open contradictions, and untested conditions. The briefing exports to PDF.
+
+> ⚠️ Emberfall helps decide which research to prioritize. It is **not** a certified hazard analysis.
 
 ---
 
-## What you can do
+## 🔥 How it works
 
-| Surface | Capability |
-|---|---|
-| **Ask** | Hybrid BM25 + dense retrieval (optional cross-encoder). Every sentence cited `[n]` and citation-checked; thin-evidence / off-topic questions are **refused**. Claim support scores, confidence, follow-ups, comparison questions, filters, share links, 👍/👎 feedback. |
-| **Reports** | Browse ~**1,334** NTRS reports; filter by fuel, condition, geometry, study design (orbital / short freefall / 1g / model), and named experiments (Saffire, BASS, FLEX, ACME…). Multi-level summaries, quoted findings, BibTeX / RIS / CSV export, side-by-side compare. |
-| **Graph** | Knowledge graph of fuels · conditions · geometries · outcomes · species · countermeasures. Year filter, theme colouring, evidence paths between concepts, PNG/JSON export. |
-| **Insights** | Consensus vs conflict: vote splits, quotes on each side, likely reasons for disagreement (fuel, freefall time, platform, atmosphere, diagnostics). |
-| **Gaps** | Coverage matrices (fuel / geometry / outcome × condition), material bias (lab fuels vs spacecraft materials), freefall test duration vs long-duration cabin fire. |
-| **Hypotheses** | Literature-based discovery (A–B and B–C supported, A–C missing) → candidate experiments with bridging papers. |
-| **Mission** | ISS / Artemis / Mars presets or custom profile → ranked risks with evidence, readiness, countermeasures, conflicts, gaps → **PDF**. |
-| **Glossary** | Plain-language freefall-fire terms, each linked into Ask. |
-| **Trust** | Live evaluation: retrieval hit@k / MRR and per-stage baselines; refusal, citation validity, faithfulness; extraction labels; safeguard notes. |
-
-### Corpus at a glance
-
-| Metric | Value |
-|---:|---:|
-| Unique NTRS reports | **1,334** |
-| Reports with usable full text | **917** |
-| Indexed passages | **20,145** |
-| Quote-verified findings | **1,812** (guard: 1,954/1,954 rule extractions) |
-| Graph | **91** entities · **590** relations |
-| Open contradictions / consensus topics | **58** / **34** |
-| Linked to named flight experiments | **125** |
-| Literature span | **1955–2026** |
-
----
-
-## NASA data we use
-
-| Source | Role |
-|---|---|
-| **[NASA Technical Reports Server (NTRS)](https://ntrs.nasa.gov/)** search API | Core corpus: microgravity combustion & spacecraft fire-safety reports |
-| **NTRS extracted full text** (`…/downloads/{file}.txt`) | Sectioned report body for retrieval and extraction (resumable, rate-limited) |
-| **Named flight experiments & missions** in text | Saffire, BASS, FLEX, ACME, CIR, STS/USML/NG/Cygnus links on reports |
-| **Cabin / mission atmospheres** (curated) | ISS, Artemis (e.g. elevated O₂ / reduced pressure), Mars presets for Mission view |
-| **Risk framing** informed by NASA fire-safety practice | Material flammability, spread/growth, detection, toxicity, suppression, partial-g, autonomy |
-
-Search queries, licensing notes, and reproducibility steps: **[`SOURCES.md`](./SOURCES.md)** · data audit: **[`data/AUDIT.md`](./data/AUDIT.md)**.
-
-Raw downloads live under `data/raw/` (gitignored). The built knowledge base in **`data/kb/` is committed**, so a fresh clone runs without re-fetching NTRS.
-
----
-
-## AI and retrieval tools we use
-
-Space Apps asks teams to disclose AI use. Ours:
-
-| Component | Tool | Notes |
-|---|---|---|
-| Dense embeddings | **`BAAI/bge-small-en-v1.5`** via **fastembed** | Local; no cloud required for hybrid search |
-| Sparse retrieval | **BM25** (`bm25s`) | Fused with dense via reciprocal rank fusion + entity boosts |
-| Optional rerank | Cross-encoder | Off by default; `EMBER_RERANK=1` |
-| Optional live answers | **Gemini** (`gemini-flash-latest`) or **Claude** (`claude-opus-5-5`) | Groq (`llama-3.3-70b-versatile`) automatic backup |
-| Optional batch extraction | Claude Message Batches API | Offline; `make extract` / `make collect` |
-| Default without keys | **Extractive mode** | Cited sentences from retrieved passages only |
-
-**Safeguards:** refusal gate for off-topic / thin evidence · mandatory citation markers · post-hoc citation validity check · verbatim quote guard on extraction · Trust page metrics.
-
----
-
-## Trust & evaluation
-
-```bash
-make eval   # → data/kb/eval_results.json (also shown on /eval)
+```mermaid
+flowchart LR
+    A[("🛰️ NASA NTRS<br/>ntrs.nasa.gov")] -->|search API + full text| B["📥 Ingest<br/>1,334 reports"]
+    B --> C["✂️ Process<br/>sections → 20,145 passages<br/>dedupe 129 duplicates"]
+    C --> D["🔎 Extract findings<br/>rules or LLM batch"]
+    D --> G{"🛡️ Quote guard<br/>verbatim in source?"}
+    G -- no --> X["🗑️ discarded"]
+    G -- yes --> E["🧬 Ontology<br/>fuels · conditions · geometries<br/>outcomes · species · countermeasures"]
+    E --> F["🧠 Knowledge base<br/>graph · consensus · gaps<br/>trends · hypotheses · risks"]
+    C --> I["📚 Hybrid index<br/>BM25 + bge-small dense"]
+    F --> API["⚡ FastAPI"]
+    I --> API
+    API --> UI["🖥️ Web app<br/>Ask · Graph · Insights · Gaps<br/>Hypotheses · Mission · Trust"]
 ```
 
-Gold set: **40** questions (**34** in-domain, **6** unanswerable) in `backend/eval/questions.jsonl`.
+### Answering a question without hallucinating
 
-**Latest extractive / hybrid run** (2026-09-30):
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant R as Hybrid retrieval
+    participant G as Refusal gate
+    participant L as LLM / extractive
+    participant C as Citation checker
+    U->>R: "Does flame spread faster in microgravity?"
+    R->>R: BM25 + dense → reciprocal rank fusion + entity boosts
+    R->>G: top passages + scores
+    alt off-topic or thin evidence
+        G-->>U: ❌ Refuse, explaining why
+    else enough evidence
+        G->>L: grounded context only
+        L->>C: draft answer with [n] markers
+        C->>C: drop sentences with invalid or unsupported citations
+        C-->>U: ✅ cited answer + conflict callout + confidence
+    end
+```
+
+---
+
+## 📊 What the NASA record shows
+
+### Research activity over time
+
+Most microgravity combustion work dates from the Shuttle and early-ISS era, which is exactly why it is hard to find today.
+
+```mermaid
+xychart-beta
+    title "NTRS microgravity-combustion reports by decade"
+    x-axis ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+    y-axis "Reports" 0 --> 550
+    bar [1, 2, 45, 91, 518, 453, 127, 25]
+```
+
+### Where the evidence comes from
+
+Most results come from **drop towers and parabolic flights**, which give seconds of freefall. Orbital experiments that burn for minutes to hours are far fewer. Emberfall tags every report with its platform so that answers say how the evidence was obtained.
+
+```mermaid
+pie showData
+    title Study design across 1,334 reports
+    "Short freefall (drop tower / parabolic)" : 494
+    "Ground / 1g" : 268
+    "Orbital flight" : 257
+    "Flight + ground" : 144
+    "Computational model" : 94
+    "Review" : 77
+```
+
+### Mission fire risks and how much of the evidence is from flight
+
+For each of 13 risk categories we count supporting reports and how many of them used real orbital flight data. **Oxygen-enriched atmospheres** and **Moon/Mars partial gravity** are the two areas Artemis depends on most, and they have the least evidence.
+
+```mermaid
+xychart-beta horizontal
+    title "Reports per fire risk (bar = all, line = orbital flight)"
+    x-axis ["Gas leaks / jet flames", "Wire insulation", "Liquid / droplet fires", "Flammability limits", "Flame spread", "Soot & radiation", "Suppression", "Ignition", "Toxic products", "Detection", "Smoldering", "Moon / Mars gravity", "O2-enriched atmos."]
+    y-axis "Reports" 0 --> 320
+    bar [312, 286, 253, 245, 232, 184, 179, 161, 132, 117, 58, 52, 50]
+    line [98, 109, 94, 97, 80, 54, 73, 65, 45, 38, 26, 19, 20]
+```
+
+### Named flight experiments linked to the corpus
+
+`Saffire` (24 reports) · `SSCE` (16) · `DCE` (15) · `LSP` (11) · `SOFBALL` (10) · `FSDC` (8) · `FEANICS` (8) · `BASS` / `BASS-II` (8 each) · `Saffire-IV` (8) · plus FLEX, ACME, CIR and others. In total, **125 reports** are linked to named experiments and **157** to specific missions (STS, USML, Cygnus NG…).
+
+### Example of a conflict the tool surfaces
+
+> **Microgravity × flame spread rate:** 33 papers, of which **17 say it increases** and **16 say it decreases**.
+> Emberfall shows quotes from both sides and the likely reasons they disagree: fuel thickness, opposed vs. concurrent flow, freefall duration, and O₂ level. That makes it clear which experiment would settle the question.
+
+---
+
+## 🧭 Who it's for
+
+| Persona | Starts at | Gets |
+|---|---|---|
+| 🧑‍🔬 **Combustion scientist** | Ask · Graph · Hypotheses | Answers that account for test method: species/soot, test counts, freefall duration |
+| 🛡️ **Safety manager** | Gaps · Insights · Trends | Portfolio view of which topics are well studied, thin, or contradictory |
+| 🏗️ **Habitat architect** | Mission briefing | Risk → evidence → countermeasure, in plain language, exportable as PDF |
+| 🎓 **Student / public** | Ask · Glossary · Reports | Plain-language entry into a dense NASA technical archive |
+
+## 🧰 Feature tour
+
+| Surface | What it does |
+|---|---|
+| **Ask** | Hybrid BM25 + dense retrieval. Every sentence is cited `[n]` and verified. Includes claim-support scores, confidence, follow-up questions, filters, share links, and 👍/👎 feedback. |
+| **Reports** | Browse 1,334 NTRS reports. Filter by fuel, condition, geometry, study design, and experiment. Multi-level summaries and BibTeX / RIS / CSV export. |
+| **Graph** | Knowledge graph with 91 entities and 590 relations. Year filter, evidence paths between concepts, PNG/JSON export. |
+| **Insights** | 34 topics where studies agree and 58 where they conflict, with the vote split, quotes on each side, and likely reasons for the disagreement. |
+| **Gaps** | Coverage matrices (fuel / geometry / outcome × condition), lab-fuel vs. spacecraft-material bias, freefall test duration vs. real cabin-fire duration. |
+| **Hypotheses** | Literature-based discovery: if A–B and B–C are both studied but A–C never is, it proposes an experiment and names the papers that connect them. |
+| **Mission** | ISS / Artemis / Mars presets or a custom atmosphere → ranked risks, readiness, countermeasures → **PDF**. |
+| **Glossary** | Plain-language terms about fire in freefall, each linked into Ask. |
+| **Trust** | Live evaluation dashboard (see below). |
+
+---
+
+## 🛡️ Trust and evaluation
+
+Safety research needs a tool that says "I don't know" when the evidence isn't there. We measure that directly with `make eval` on a gold set of **40 questions (34 answerable, 6 deliberately unanswerable)**.
 
 | Metric | Score |
 |---|---:|
-| hit@1 / hit@5 / hit@10 | **0.56** / **0.82** / **0.94** |
-| MRR | **0.70** |
-| Refusal accuracy | **1.00** |
-| Citation validity | **1.00** |
-| Faithfulness / supported sentences | **1.00** |
-| Quote guard | **1.00** |
+| Refusal accuracy (unanswerable questions) | **100%** |
+| Citation validity | **100%** |
+| Faithfulness / supported sentences | **100%** |
+| Quote guard (1,954 / 1,954 extractions verified) | **100%** |
+| Retrieval hit@1 / hit@5 / hit@10 | 0.56 / 0.82 / **0.94** |
+| MRR | 0.70 |
+| Median latency (extractive) | 23 ms |
 
-Per-stage baselines (hit@5): BM25 0.79 · dense 0.82 · **hybrid 0.82** · rerank 0.88 (rerank off in default path). Relevance uses topic regexes over titles (lenient topical retrieval, not exact-paper recall). Human extraction labels: `backend/eval/extraction_labels.csv`.
+```mermaid
+xychart-beta
+    title "Retrieval hit@5 / hit@10 by stage (bar = hit@5, line = hit@10)"
+    x-axis ["BM25", "Dense", "Hybrid (default)", "+ Rerank"]
+    y-axis "Score" 0.7 --> 1.0
+    bar [0.794, 0.824, 0.824, 0.882]
+    line [0.912, 0.912, 0.941, 0.941]
+```
+
+Retrieval relevance is judged by topic regexes over report titles. This measures whether the right topic is retrieved, not whether the exact paper is. Human extraction labels are in `backend/eval/extraction_labels.csv`.
 
 ---
 
-## Quick start
+## 🛰️ NASA data
 
-**Requirements:** [uv](https://docs.astral.sh/uv/), **Node 20+**, [pnpm](https://pnpm.io/).
+| Source | Role |
+|---|---|
+| **[NASA Technical Reports Server (NTRS)](https://ntrs.nasa.gov/)** search API | Core corpus of microgravity combustion and spacecraft fire-safety reports |
+| **NTRS extracted full text** | Report body split into sections, used for retrieval and extraction (917 reports have usable text) |
+| **Named flight experiments** | Saffire, BASS, FLEX, ACME, SSCE, DCE, CIR, and STS/USML/Cygnus mission links |
+| **Cabin atmospheres** (curated) | ISS, Artemis (elevated O₂ / reduced pressure), and Mars presets |
+| **NASA fire-safety risk framing** | Flammability, spread, detection, toxicity, suppression, partial-g, crew autonomy |
+
+Most reports come from **Glenn Research Center** (685), followed by JSC (68), MSFC (53), and others. Provenance, query list, and licensing are in [`SOURCES.md`](./SOURCES.md), and the data audit is in [`data/AUDIT.md`](./data/AUDIT.md). The built knowledge base in `data/kb/` is **committed**, so a fresh clone runs without re-fetching NTRS.
+
+## 🤖 AI disclosure
+
+Space Apps asks teams to disclose AI use. Here is ours:
+
+| Component | Tool | Notes |
+|---|---|---|
+| Dense embeddings | `BAAI/bge-small-en-v1.5` via fastembed | Runs locally, no cloud needed |
+| Sparse retrieval | BM25 (`bm25s`) | Fused with dense results via RRF + entity boosts |
+| Optional rerank | Cross-encoder | Off by default (`EMBER_RERANK=1`) |
+| Optional generative answers | Gemini (`gemini-flash-latest`) or Claude (`claude-opus-5-5`), with Groq (`llama-3.3-70b-versatile`) as backup | Constrained to retrieved passages and citation-checked |
+| Optional batch extraction | Claude Message Batches API | Offline (`make extract` / `make collect`) |
+| **Default with no API keys** | **Extractive mode** | Answers are only cited sentences taken from the reports |
+
+---
+
+## ⚡ Run it in 3 commands
+
+**Requirements:** [uv](https://docs.astral.sh/uv/), Node 20+, [pnpm](https://pnpm.io/).
 
 ```bash
-git clone https://github.com/0xdevabir/runtime-terrors.git
-cd runtime-terrors
-
-make setup          # backend (uv + dense extras) + web (pnpm)
-make embed          # optional: dense embeddings if missing (~30 min CPU, resumable)
-make dev            # API :8000 + web :3000
+git clone https://github.com/0xdevabir/runtime-terrors.git && cd runtime-terrors
+make setup     # backend (uv) + web (pnpm)
+make dev       # API :8000 + web :3000  →  open http://localhost:3000
 ```
 
-Open **http://localhost:3000**.
+<details>
+<summary><b>More commands, LLM keys, and deployment</b></summary>
 
 | Command | Purpose |
 |---|---|
-| `make data` | NTRS fetch → process → build KB (only if `data/kb` missing/stale; 1–3 h) |
+| `make embed` | Dense embeddings if missing (~30 min on CPU, resumable) |
+| `make data` | Full NTRS fetch → process → build KB (1–3 h; only needed if `data/kb` is missing or stale) |
 | `make test` | Backend unit tests |
-| `make eval` | Retrieval / refusal / citation / faithfulness metrics |
+| `make eval` | Retrieval / refusal / citation / faithfulness metrics → `data/kb/eval_results.json` |
 | `make up` | Full stack via Docker Compose |
 
-**Optional LLM answers:** copy `backend/.env.example` → `backend/.env` and set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, plus `GROQ_API_KEY` as backup. Force provider with `EMBER_LLM=gemini|claude|groq`. Without keys, the API stays in extractive cited mode.
+**Optional LLM answers:** copy `backend/.env.example` → `backend/.env` and set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, plus `GROQ_API_KEY` as a backup. To force a provider, set `EMBER_LLM=gemini|claude|groq`.
 
----
+**Deploy:** `make docker` builds the `emberfall-api` image (it bundles `data/kb` and the embedding model). Deploy `web/` (e.g. on Vercel) with `API_URL=https://<your-api>`. For cross-origin setups, set `NEXT_PUBLIC_API_URL` and add the origin to `EMBER_CORS`.
 
-## Architecture
+</details>
 
-```
-NASA Technical Reports Server (ntrs.nasa.gov)
-   │  pipeline/ntrs.py       search meta → papers.csv; fulltext (rate-limited); audit
-   ▼
-data/raw/ntrs/fulltext/
-   │  pipeline/process.py    sections, ~180-word passages, metadata, duplicate detection
-   │  pipeline/extract_*.py  findings (rules or Claude batch) + quote guard
-   │  pipeline/build.py      ontology → graph, consensus, gaps, trends, hypotheses, risks, BM25
-   │  pipeline/embed.py      dense passage embeddings (optional / resumable)
-   ▼
-data/kb/*.json|npy           in-memory knowledge base (no database)
-   │  app/main.py            FastAPI `/api/*`, SSE `/api/ask`
-   │  app/retrieval.py       hybrid BM25 + bge-small, RRF, entity boosts
-   │  app/answer.py          refuse → LLM or extractive → citation check
-   │  app/mission.py         freefall / partial-g / O₂ / pressure → ranked risks
-   ▼
-web/  Next.js 16 · React 19 · Tailwind v4 · Cytoscape   light/dark, mobile-ready
-```
-
-### Tech stack
+<details>
+<summary><b>Tech stack and project layout</b></summary>
 
 | Layer | Choice |
 |---|---|
@@ -192,95 +270,72 @@ web/  Next.js 16 · React 19 · Tailwind v4 · Cytoscape   light/dark, mobile-re
 | Web | Next.js 16, React 19, Tailwind CSS v4, Cytoscape.js + fcose |
 | Ops | Make, Docker Compose, uv, pnpm |
 
-Design notes and deviations (in-memory KB vs Postgres/Neo4j, rule-based extraction limits): see **[`PLAN.md`](./PLAN.md)**.
-
----
-
-## Project layout
-
 ```
 runtime-terror/
 ├── backend/
-│   ├── pipeline/     # ntrs → process → extract → ontology → build → embed
-│   ├── app/          # FastAPI: retrieval, answer, mission, export, glossary
-│   ├── eval/         # questions.jsonl, extraction labels, run_eval.py
+│   ├── pipeline/   # ntrs → process → extract → ontology → build → embed
+│   ├── app/        # FastAPI: retrieval, answer, mission, export, glossary
+│   ├── eval/       # gold questions, extraction labels, run_eval.py
 │   └── tests/
-├── web/              # Next.js app (ask, papers, graph, insights, gaps, …)
-├── data/
-│   ├── kb/           # committed demo knowledge base
-│   ├── processed/    # papers.csv, audits
-│   └── raw/          # gitignored NTRS downloads
-├── docker-compose.yml
-├── SOURCES.md        # NASA data provenance
-├── PLAN.md           # product & build plan
-└── CONTRIBUTING.md
+├── web/            # Next.js app
+├── data/kb/        # committed knowledge base (no database needed)
+├── SOURCES.md      # NASA data provenance
+└── PLAN.md         # design notes and deviations
 ```
 
----
-
-## Two-minute demo script
-
-1. **Problem (0:00)** — 1,300+ NASA reports on fire in freefall; designers can’t see what’s known, conflicting, or missing.  
-2. **Mission (0:15)** — Persona: habitat architect → **Artemis** briefing: ranked risks, evidence bars, a contradiction on flame spread, countermeasures → export PDF.  
-3. **Ask (0:50)** — Question on microgravity flame spread; show citations, conflict callout, confidence.  
-4. **Gaps / Graph (1:15)** — Coverage hole (e.g. spacecraft materials × elevated O₂) and an evidence path on the graph.  
-5. **Trust (1:35)** — Off-topic question → **refusal**; open `/eval` scores (refusal, citations, hit@k).  
-6. **Close (1:50)** — Same evidence for scientists, managers, and architects — grounded in NTRS.
+</details>
 
 ---
 
-## Impact
+## 🎬 Two-minute demo
 
-- **For NASA & partners:** faster literature triage for freefall fire safety; explicit map of contradictions and under-tested cells before committing to flight experiments.  
-- **For Artemis / Mars planning:** mission-conditioned risk briefings tied to real report quotes, not generic chatbot prose.  
-- **For the public & students:** accessible entry (Glossary + L1 summaries) into a historically dense STI corpus.  
-- **For open science:** reproducible NTRS pipeline, committed KB, published eval harness, MIT-licensed code.
-
-### What’s next
-
-- Scale Claude/Gemini batch extraction across the full corpus for richer effect sizes and atmospheres.  
-- Deeper partial-gravity and elevated-O₂ gap campaigns with scientist-in-the-loop labels.  
-- Hosted public demo + optional TechPort / standards cross-links (`NASA_API_KEY`).  
-- Broader gold questions and human faithfulness spot-checks to calibrate automatic judges.
-
----
-
-## Team
-
-**runtime-terror** — NASA Space Apps Challenge
-
-| | |
+| Time | Beat |
 |---|---|
-| Repository | https://github.com/0xdevabir/runtime-terrors |
-| Contribute | [`CONTRIBUTING.md`](./CONTRIBUTING.md) — grounding-first; run `make eval` when changing retrieval/answers |
+| **0:00** | **Problem:** 1,300+ NASA reports on fire in freefall, and designers can't see what is known, what conflicts, or what is missing. |
+| **0:15** | **Mission:** habitat architect → **Artemis** briefing → ranked risks, evidence bars, a flame-spread contradiction → export PDF. |
+| **0:50** | **Ask:** microgravity flame spread → citations, conflict callout, confidence. |
+| **1:15** | **Gaps + Graph:** spacecraft materials × elevated O₂ is barely tested; follow the evidence path on the graph. |
+| **1:35** | **Trust:** ask something off-topic → refusal; open `/eval`. |
+| **1:50** | **Close:** one evidence base for scientists, managers, and architects, grounded in NTRS. |
 
-*Add teammate names, local event, and Space Apps project page URL here before final submission.*
+## 🌍 Impact
 
----
+- **NASA & partners:** faster literature triage, plus an explicit map of contradictions and under-tested conditions *before* committing to expensive flight experiments.
+- **Artemis & Mars planning:** risk briefings for a specific mission, tied to real report quotes instead of generic chatbot text.
+- **Students & public:** an accessible way into a historically dense NASA archive.
+- **Open science:** a reproducible NTRS pipeline, committed KB, published eval harness, and MIT-licensed code.
 
-## Deployment
+### What's next
 
-- **API:** `make docker` → image `emberfall-api` (bundles `data/kb` + embedding model).  
-- **Web:** deploy `web/` (e.g. Vercel) with `API_URL=https://<your-api>` so the server proxies `/api/*`.  
-- Cross-origin: set `NEXT_PUBLIC_API_URL` and allow the origin in `EMBER_CORS` on the API.  
-- Local all-in-one: `make up` (API `:8000`, web `:3000`).
-
----
-
-## Acknowledgments
-
-- NASA Technical Reports Server and the decades of microgravity combustion and spacecraft fire-safety researchers whose work this indexes.  
-- Flight experiment programs including **Saffire**, **BASS**, **FLEX**, **ACME**, and related ISS/Cygnus efforts.  
-- [NASA Space Apps Challenge](https://www.spaceappschallenge.org/) for the brief that pushed this from “search the PDFs” to a mission-ready evidence workflow.
-
----
-
-## License
-
-**Code:** MIT — see [`LICENSE`](./LICENSE).
-
-**Data:** Report text and PDFs belong to their authors and NASA; fetched from the public NTRS under each record’s `copyright.determinationType` and distribution terms. Do not redistribute publisher-copyright PDFs. Derived `data/kb/` is for **research and educational** use.
+- [ ] LLM batch extraction across the full corpus to capture effect sizes and atmospheres in more detail
+- [ ] Gap campaigns on partial gravity and elevated O₂, with scientists labeling results
+- [ ] Hosted public demo, with TechPort and standards cross-links
+- [ ] A larger gold question set and human spot-checks of faithfulness
 
 ---
 
-*Emberfall — because in freefall, fire doesn’t rise. Neither should uncertainty.*
+## 👩‍🚀 Team runtime-terror
+
+| Name | Role |
+|---|---|
+| *[add]* | *[add]* |
+| *[add]* | *[add]* |
+
+Local event: *[add]* · Contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md). We put grounding first, so please run `make eval` whenever you change retrieval or answer logic.
+
+## 🙏 Acknowledgments
+
+- The NASA Technical Reports Server, and the researchers who have spent decades on microgravity combustion and spacecraft fire safety.
+- The flight programs **Saffire**, **BASS**, **FLEX**, **ACME**, **SSCE**, **DCE**, and the related ISS and Cygnus efforts.
+- The [NASA Space Apps Challenge](https://www.spaceappschallenge.org/), whose brief pushed us from "search the PDFs" to an evidence workflow built around missions.
+
+## 📜 License
+
+**Code:** MIT, see [`LICENSE`](./LICENSE).
+**Data:** Report text belongs to its authors and NASA. It was fetched from the public NTRS under each record's distribution terms. Do not redistribute PDFs under publisher copyright. The derived `data/kb/` is for research and educational use.
+
+<div align="center">
+
+*Emberfall: in freefall, fire doesn't rise, and neither should uncertainty.* 🔥🛰️
+
+</div>

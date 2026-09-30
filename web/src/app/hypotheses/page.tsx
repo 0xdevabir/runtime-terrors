@@ -27,7 +27,7 @@ export default function HypothesesPage() {
   const max = Math.max(1, ...(data ?? []).map((h) => h.score));
 
   return (
-    <Page title="Hypotheses" subtitle={<>Connections the literature implies but never tests. If A is linked to B in some papers, and B to C in others, but no paper studies A with C, that A–C link is a candidate experiment.</>}
+    <Page title="Hypotheses" subtitle="Links the research hints at but never tested — ideas for the next experiment."
       toolbar={
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
           <Chip active={!type} onClick={() => setType("")}>All</Chip>

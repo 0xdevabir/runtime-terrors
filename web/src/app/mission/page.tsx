@@ -10,8 +10,8 @@ import { useEntities } from "@/lib/entities";
 
 type Preset = "iss" | "artemis" | "mars" | "custom";
 const GRAD: Record<string, string> = {
-  iss: "linear-gradient(145deg,#30b0c7,#007aff)", artemis: "linear-gradient(145deg,#8e8e93,#3a3a3c)",
-  mars: "linear-gradient(145deg,#ff9500,#ff3b30)", custom: "linear-gradient(145deg,#5856d6,#af52de)",
+  iss: "linear-gradient(145deg,#3e6b70,#2f3737)", artemis: "linear-gradient(145deg,#5a5f5c,#1b1b1b)",
+  mars: "linear-gradient(145deg,#b5653a,#6e2f22)", custom: "linear-gradient(145deg,#5f7a57,#2f3737)",
 };
 const TIER: Record<MissionRisk["tier"], { label: string; color: string; icon: IconName }> = {
   high: { label: "High priority", color: "var(--status-critical)", icon: "warn" },
@@ -54,7 +54,7 @@ function MissionView() {
   const prof = data?.profile;
 
   return (
-    <Page title="Mission Briefing" subtitle="Fire-safety risks for a mission profile, ranked by how exposed the vehicle would be and how uncertain the combustion evidence still is."
+    <Page title="Mission Briefing" subtitle="Fire risks for your mission, most urgent first."
       trailing={<button onClick={() => window.print()} className="flex items-center gap-1 t-body btn-press" aria-label="Export PDF"><Icon name="printer" size={20} /><span className="hidden sm:inline">PDF</span></button>}
       toolbar={<Segmented value={preset} onChange={setP} options={[{ value: "iss", label: "ISS" }, { value: "artemis", label: "Artemis" }, { value: "mars", label: "Mars" }, { value: "custom", label: "Custom" }]} />}>
 

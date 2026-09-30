@@ -22,8 +22,16 @@ export default function GraphPage() {
   return <Suspense><Graph /></Suspense>;
 }
 
+/** Resolve a CSS custom property to an rgb()/rgba() string. Chrome serialises custom properties as
+ *  8-digit hex (#78788033), which Cytoscape rejects, so let the browser compute a real colour instead. */
 function cssVar(name: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
+  const probe = document.createElement("span");
+  probe.style.color = `var(${name}, #888)`;
+  probe.style.display = "none";
+  document.body.appendChild(probe);
+  const c = getComputedStyle(probe).color;
+  probe.remove();
+  return c || "#888";
 }
 
 function Graph() {
@@ -214,7 +222,8 @@ function Graph() {
       </div>
 
       <div className="relative bg-bg-2 rounded-2xl overflow-hidden h-[calc(100dvh-300px)] min-h-[420px]">
-        <div ref={box} className="absolute inset-0" />
+        {/* inline style: Cytoscape injects an unlayered `position: relative` rule that beats Tailwind's `absolute` */}
+        <div ref={box} style={{ position: "absolute", inset: 0 }} />
         {!data && !error && <div className="absolute inset-0 grid place-items-center t-sub text-label-2">Laying out graph…</div>}
         {error ? <div className="absolute inset-0 grid place-items-center t-sub text-label-2">Can&apos;t reach the API.</div> : null}
         <div className="absolute left-3 bottom-3 material rounded-xl px-3 py-2 space-y-1.5 border border-sep">

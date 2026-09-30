@@ -43,7 +43,6 @@ function Ask() {
   const setScope = (v: string) => setFilters((f) => ({ ...f, study_type: v || undefined }));
   const nFilters = [filters.fuel, filters.condition, filters.geometry, filters.year_min, filters.year_max].filter(Boolean).length;
   const [source, setSource] = useState<{ turn: Turn; n: number } | null>(null);
-  const started = useRef(false);
   const bottom = useRef<HTMLDivElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const turnsRef = useRef<Turn[]>([]);
@@ -85,18 +84,25 @@ function Ask() {
     };
   }, [persona, filters]);
 
+  const askRef = useRef(ask);
+  useEffect(() => { askRef.current = ask; }, [ask]);
+
+  // Auto-ask ?q= (links from Home, Glossary, Gaps, Mission ...). Keyed on the URL only, and the cleanup
+  // closes the stream and drops the unfinished turn, so a Strict Mode remount or a new ?q= re-asks cleanly.
   useEffect(() => {
     const q = params.get("q");
-    if (q && !started.current) {
-      started.current = true;
-      const f: Filters = {};
-      for (const k of ["study_type", "fuel", "condition", "geometry"] as const) if (params.get(k)) f[k] = params.get(k)!;
-      for (const k of ["year_min", "year_max"] as const) if (params.get(k)) f[k] = +params.get(k)!;
-      setFilters(f);
-      if (Object.keys(f).some((k) => k !== "study_type")) setShowFilters(true);
-      ask(q, f);
-    }
-  }, [params, ask]);
+    if (!q) return;
+    const f: Filters = {};
+    for (const k of ["study_type", "fuel", "condition", "geometry"] as const) if (params.get(k)) f[k] = params.get(k)!;
+    for (const k of ["year_min", "year_max"] as const) if (params.get(k)) f[k] = +params.get(k)!;
+    setFilters(f);
+    if (Object.keys(f).some((k) => k !== "study_type")) setShowFilters(true);
+    askRef.current(q, f);
+    return () => {
+      esRef.current?.close();
+      setTurns((ts) => ts.filter((t) => t.status === "done" || t.status === "error"));
+    };
+  }, [params]);
 
   useEffect(() => () => esRef.current?.close(), []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns.length]);

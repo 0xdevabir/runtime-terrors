@@ -1,13 +1,14 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-export type Persona = "scientist" | "manager" | "architect";
+export type Persona = "scientist" | "manager" | "architect" | "student";
 export type Theme = "system" | "light" | "dark";
 
-export const PERSONAS: { id: Persona; label: string; short: string; icon: "flask" | "chart" | "rocket"; blurb: string }[] = [
+export const PERSONAS: { id: Persona; label: string; short: string; icon: "flask" | "chart" | "rocket" | "books"; blurb: string }[] = [
   { id: "scientist", label: "Scientist", short: "Scientist", icon: "flask", blurb: "Mechanisms, methods and where studies disagree" },
   { id: "manager", label: "Program Manager", short: "Manager", icon: "chart", blurb: "Bottom lines, evidence strength, investment gaps" },
   { id: "architect", label: "Mission Architect", short: "Architect", icon: "rocket", blurb: "Crew-health risk and countermeasures for Moon & Mars" },
+  { id: "student", label: "Student", short: "Student", icon: "books", blurb: "Plain language, key terms explained" },
 ];
 
 type Prefs = { persona: Persona; setPersona: (p: Persona) => void; theme: Theme; setTheme: (t: Theme) => void };

@@ -1,15 +1,22 @@
 "use client";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { DirectionGlyph, ErrorNote, Page, Quote, Row, Section, Segmented, Skeleton, StudyTag, Tag } from "@/components/ui";
-import { PaperDetail, STUDY_TYPE_LABEL } from "@/lib/api";
+import { API, download, PaperDetail, STUDY_TYPE_LABEL } from "@/lib/api";
+import { useBookmarks } from "@/lib/bookmarks";
 import { TYPE_META } from "@/lib/entities";
 import { useApi } from "@/lib/useApi";
 
 export default function PaperPage() {
+  return <Suspense><Paper /></Suspense>;
+}
+
+function Paper() {
   const { id } = useParams<{ id: string }>();
+  const hl = useSearchParams().get("hl");
+  const { has, toggle } = useBookmarks();
   const { data: p, error } = useApi<PaperDetail>(`/papers/${id}`);
   const [level, setLevel] = useState<"l1" | "l2" | "l3">("l1");
   const [showAbs, setShowAbs] = useState(false);
@@ -28,6 +35,8 @@ export default function PaperPage() {
     <Page title="Publication" back={{ label: "Back" }}
       trailing={
         <>
+          <button onClick={() => toggle(p.id)} aria-label={has(p.id) ? "Remove from saved" : "Save paper"} title={has(p.id) ? "Saved" : "Save"}
+            className={`btn-press ${has(p.id) ? "text-tint" : ""}`}><Icon name={has(p.id) ? "checkCircle" : "circle"} size={20} /></button>
           <button onClick={() => navigator.share ? navigator.share({ title: p.title, url: location.href }).catch(() => {}) : navigator.clipboard.writeText(location.href)} aria-label="Share" className="btn-press"><Icon name="share" size={20} /></button>
           <a href={p.url} target="_blank" rel="noreferrer" aria-label="Open in PMC" className="btn-press"><Icon name="arrowUpRight" size={20} /></a>
         </>
@@ -42,7 +51,17 @@ export default function PaperPage() {
         {p.duration && <Tag tone="gray">{p.duration.value} {p.duration.unit}</Tag>}
         {p.full_text ? <Tag tone="green">Full text · {(p.word_count ?? 0).toLocaleString()} words</Tag> : <Tag tone="orange">Abstract only</Tag>}
         {p.osdr.length > 0 && <Tag tone="teal">OSDR data</Tag>}
+        {p.sample_size ? <Tag>n = {p.sample_size}</Tag> : null}
+        {p.dose && <Tag tone="red">{p.dose}</Tag>}
+        {p.missions?.map((m) => <Tag key={m} tone="purple">{m}</Tag>)}
       </div>
+      {p.duplicate_of && (
+        <p className="t-foot text-orange mb-4">
+          Likely duplicate of <Link className="underline" href={`/papers/${p.duplicate_of}`}>{p.duplicate_of}</Link>; counted once in evidence totals.
+        </p>
+      )}
+
+      {hl && <Highlight pid={p.id} chunk={hl} />}
 
       {/* Summary levels */}
       <div className="bg-bg-2 rounded-2xl p-4 mb-8">
@@ -89,6 +108,12 @@ export default function PaperPage() {
         ))}
       </Section>
 
+      {(p.limitations?.length ?? 0) > 0 && (
+        <Section header="Limitations stated by the authors" footer="Sentences taken verbatim from the paper.">
+          {p.limitations!.map((l, i) => <div key={i} className="row block"><Quote>{l}</Quote></div>)}
+        </Section>
+      )}
+
       {/* Abstract */}
       <Section header="Abstract">
         <div className="row block">
@@ -100,6 +125,7 @@ export default function PaperPage() {
       <div className="grid sm:grid-cols-2 gap-x-6">
         <Section header="Data & source">
           <Row href={p.url} external icon="doc" iconBg="var(--blue)" title="Read on PubMed Central" subtitle={p.id} />
+          <Cite id={p.id} />
           {p.osdr.map((o) => <Row key={o.id} href={o.url} external icon="database" iconBg="var(--teal)" title={`OSDR ${o.id}`} subtitle="Open Science Data Repository" />)}
           {Object.keys(p.sections).length > 0 && (
             <Row icon="books" iconBg="var(--gray)" title="Indexed sections" subtitle={Object.entries(p.sections).map(([k, v]) => `${k} ${v}`).join(" · ")} />
@@ -118,5 +144,34 @@ export default function PaperPage() {
         </Section>
       )}
     </Page>
+  );
+}
+
+function Cite({ id }: { id: string }) {
+  const [done, setDone] = useState("");
+  const get = (format: "bibtex" | "ris") => fetch(`${API}/api/papers/${id}/cite?format=${format}`).then((r) => r.text());
+  const copy = async () => { try { await navigator.clipboard.writeText(await get("bibtex")); setDone("Copied"); setTimeout(() => setDone(""), 1500); } catch {} };
+  return (
+    <div className="row indent" style={{ "--indent": "57px" } as React.CSSProperties}>
+      <span className="grid place-items-center w-[29px] h-[29px] rounded-[7px] text-white shrink-0" style={{ background: "var(--indigo)" }}><Icon name="quote" size={18} stroke={2} /></span>
+      <div className="flex-1 t-body">Cite</div>
+      <div className="flex gap-3 t-sub">
+        <button className="text-tint" onClick={copy}>{done || "Copy BibTeX"}</button>
+        <button className="text-tint" onClick={async () => download(`${id}.bib`, await get("bibtex"))}>.bib</button>
+        <button className="text-tint" onClick={async () => download(`${id}.ris`, await get("ris"))}>.ris</button>
+      </div>
+    </div>
+  );
+}
+
+function Highlight({ pid, chunk }: { pid: string; chunk: string }) {
+  const { data } = useApi<{ id: string; section: string; text: string }[]>(`/papers/${pid}/chunks`);
+  const c = data?.find((x) => x.id === chunk);
+  if (!c) return null;
+  return (
+    <div className="bg-yellow/10 ring-1 ring-yellow/40 rounded-2xl p-4 mb-6">
+      <div className="t-foot font-semibold text-label-2 mb-2">Passage cited in your answer</div>
+      <Quote section={c.section}>{c.text}</Quote>
+    </div>
   );
 }

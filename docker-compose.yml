@@ -1,0 +1,32 @@
+# One-command local stack: API on :8000, web on :3000.
+#   docker compose up --build
+# Optional: put ANTHROPIC_API_KEY in backend/.env for Claude answers (extractive mode works without it).
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      SBA_CORS: http://localhost:3000
+    volumes:
+      - ./data/logs:/srv/data/logs   # audit + feedback logs survive restarts
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  web:
+    build:
+      context: web
+      args:
+        API_URL: http://api:8000
+    ports: ["3000:3000"]
+    depends_on:
+      api:
+        condition: service_healthy

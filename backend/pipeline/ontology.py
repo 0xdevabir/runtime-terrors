@@ -240,6 +240,33 @@ GENES = [
 ]
 
 ALL_ENTITIES: list[Entity] = ORGANISMS + STRESSORS + PLATFORMS + TISSUES + OUTCOMES + COUNTERMEASURES + GENES
+
+# Cross-references for entries defined without one (NCBITaxon, UBERON, PO, CL, GO, MeSH, HGNC).
+# Only unambiguous mappings; umbrella entries (e.g. "Algae", "Clock genes") deliberately stay unmapped.
+EXTRA_IDS = {
+    "organism:tardigrade": "NCBITaxon:42241", "organism:squid": "NCBITaxon:6613", "organism:brassica": "NCBITaxon:3705",
+    "organism:wheat": "NCBITaxon:4565", "organism:lettuce": "NCBITaxon:4236", "organism:tomato": "NCBITaxon:4081",
+    "organism:fern": "NCBITaxon:49495", "organism:s_aureus": "NCBITaxon:1279", "organism:salmonella": "NCBITaxon:590",
+    "organism:pseudomonas": "NCBITaxon:286", "organism:streptococcus": "NCBITaxon:1301", "organism:virus": "NCBITaxon:10239",
+    "stressor:microgravity_flight": "MESH:D018474", "stressor:simulated_microgravity": "MESH:D018767",
+    "stressor:space_radiation": "MESH:D003358",
+    "tissue:cartilage": "UBERON:0002418", "tissue:blood": "UBERON:0000178", "tissue:adipose": "UBERON:0001013",
+    "tissue:reproductive": "UBERON:0000990", "tissue:stem_cells": "CL:0000034", "tissue:root": "PO:0009005",
+    "tissue:shoot": "PO:0009006", "tissue:seed": "PO:0009010", "tissue:cell_wall": "GO:0005618",
+    "outcome:telomere": "GO:0000781", "outcome:senescence": "GO:0090398", "outcome:antibiotic_resistance": "GO:0046677",
+    "outcome:biofilm_formation": "GO:0042710", "outcome:calcium": "GO:0019722", "outcome:wound_healing": "GO:0042060",
+    "outcome:cancer_risk": "MESH:D063646", "outcome:reproduction": "GO:0000003",
+    "countermeasure:exercise": "MESH:D015444", "countermeasure:bisphosphonate": "MESH:D004164",
+    "countermeasure:antioxidant": "MESH:D000975", "countermeasure:melatonin": "MESH:D008550",
+    "countermeasure:lbnp": "MESH:D008165", "countermeasure:radioprotector": "MESH:D011837",
+    "gene:cdkn1a": "HGNC:1784", "gene:tp53": "HGNC:11998", "gene:rankl": "HGNC:11926", "gene:sost": "HGNC:13771",
+    "gene:mstn": "HGNC:4223", "gene:mtor": "HGNC:3942", "gene:nrf2": "HGNC:7782", "gene:hif1a": "HGNC:4910",
+    "gene:nfkb": "HGNC:7794", "gene:tgfb": "HGNC:11766", "gene:wnt": "HGNC:2514", "gene:pgc1a": "HGNC:9237",
+    "gene:il6": "HGNC:6018", "gene:tnf": "HGNC:11892",
+}
+for _e in ALL_ENTITIES:
+    _e.ontology = _e.ontology or EXTRA_IDS.get(_e.id)
+
 BY_ID = {e.id: e for e in ALL_ENTITIES}
 BY_TYPE: dict[str, list[Entity]] = {}
 for _e in ALL_ENTITIES:

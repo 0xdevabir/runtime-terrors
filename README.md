@@ -10,15 +10,17 @@ and a per-mission risk briefing.
 
 | | |
 |---|---|
-| **Ask** | Q&A over 17k passages. Every sentence is cited `[n]`, every citation is checked, and off-topic or thin-evidence questions get refused. Three personas: Scientist, Mission architect, Manager. |
-| **Papers** | Browse and filter all 572 papers by study type, organism, stressor, tissue and OSDR link. Each paper has 3-level summaries and findings with verbatim evidence quotes. |
-| **Graph** | Knowledge graph of organisms, stressors, tissues, outcomes and countermeasures (126 nodes, 627 edges). Click any node or edge to see the papers behind it. |
-| **Insights** | Consensus, conflicts and emerging topics: vote splits per claim, each side's quotes, and the likely reasons they disagree (species, ground analog vs. flight, duration). |
-| **Gaps** | Heatmaps of organism/tissue/outcome × stressor, plus a "most conspicuous gaps" list: cells far below what the row and column totals would predict. |
-| **Trends** | Research topics over time (yearly or cumulative), study designs, rising and fading topics. |
+| **Ask** | Q&A over 17k passages with hybrid BM25 + dense retrieval (optional cross-encoder rerank). Every sentence is cited `[n]` and every citation is checked; off-topic or thin-evidence questions are refused. Also: per-claim support scores and an overall confidence rating, follow-up questions ("what about in rats?"), comparison questions ("mice vs humans"), filters (study type, organism, stressor, tissue, years), share links, and 👍/👎 feedback. Four personas: Scientist, Mission architect, Manager, Student. |
+| **Papers** | Browse and filter all 572 papers by study type, organism, stressor, tissue and OSDR link. Each paper has 3-level summaries, findings with verbatim quotes, sample size, dose, missions, limitations and duplicate detection. Save papers, compare them side by side, and export BibTeX / RIS / CSV. |
+| **Graph** | Knowledge graph of organisms, stressors, tissues, outcomes and countermeasures. Filter by year and colour by theme (community detection). Key concepts come from PageRank and betweenness. Evidence paths connect any two concepts. Export PNG or JSON. Click any node or edge to see its papers. |
+| **Topics** | Key takeaways per tissue or system: consensus, conflicts, a timeline and papers grouped by evidence. |
+| **Insights** | Consensus, conflicts and emerging topics: vote splits per claim with a timeline of how the votes built up, each side's quotes, and the likely reasons they disagree (species, ground analog vs. flight, duration). |
+| **Gaps** | Heatmaps of organism/tissue/outcome × stressor, plus conspicuous gaps (cells far below what their row and column totals predict), species bias (few human studies) and exposure duration vs. a Mars mission. |
+| **Trends** | Research topics over time, study designs, rising and fading topics, and new findings that challenge the consensus. |
 | **Hypotheses** | Literature-based discovery (A–B, B–C, but never A–C) that suggests candidate experiments, each with bridging papers. |
-| **Mission** | ISS / Artemis / Mars presets or custom parameters give a ranked biological risk briefing: evidence, countermeasures, open conflicts and gaps. Exports to PDF. |
-| **Trust** | An evaluation page with retrieval hit@k, MRR, refusal accuracy, citation validity and the quote guard. |
+| **Mission** | ISS / Artemis / Mars presets or custom parameters give a ranked biological risk briefing: evidence, readiness, countermeasures, open conflicts and gaps. Exports to PDF. |
+| **Glossary** | Plain-language definitions of space-biology terms, each with a link to ask about it. |
+| **Trust** | An evaluation page. Retrieval: hit@k, MRR and per-stage baselines. Answers: refusal accuracy, citation validity, faithfulness. Extraction: accuracy against human labels. Also shows the safeguards. |
 
 ## Quick start
 
@@ -29,6 +31,8 @@ make setup          # backend deps (uv) + web deps (pnpm)
 make data           # fetch -> process -> build (only needed if data/kb is missing or stale)
 make embed          # optional: dense embeddings for hybrid search (~30 min CPU, resumable)
 make dev            # API on :8000 + web on :3000
+make test           # backend unit tests
+make up             # or: the whole stack in Docker (API :8000, web :3000)
 ```
 
 Then open http://localhost:3000. The built knowledge base (`data/kb/`) is committed, so
@@ -76,6 +80,13 @@ make eval   # writes data/kb/eval_results.json; shown on the /eval page
 
 The question set in `backend/eval/questions.jsonl` has 34 in-domain questions and 6 off-topic ones. Relevance is judged by a
 topic regex over paper titles, so the scores measure lenient topical retrieval, not exact-paper recall.
+Each pipeline stage is scored separately (BM25, dense, hybrid, + entity boost, + rerank) so its contribution is visible.
+
+**Extraction accuracy needs people.** `make label` samples 100 findings into
+`backend/eval/extraction_labels.csv`. Fill in the `*_ok` columns (y/n) by reading each quote, then run `make eval`
+to get per-field precision. Nothing in the code guesses these labels.
+
+Feedback from 👍/👎 in Ask is appended to `data/logs/feedback.jsonl`.
 
 ## Deployment
 
@@ -92,3 +103,10 @@ topic regex over paper titles, so the scores measure lenient topical retrieval, 
 - **Coverage:** the 607 CSV rows hold 572 unique PMC papers; all were fetched, 490 with full text and 82 abstract-only (no open-access body).
 - **Rule-based extraction (no key):** it reads direction words (increase, decrease, no change) near known entities. Negation and more complex claims can be misread. The quote guard ensures every finding is a real sentence, but not that its label is right. Claude extraction (`make extract`) improves this.
 - **Mission risk scores:** they rank evidence, they are not clinical risk estimates. Treat hypotheses as leads, not findings.
+- **Conversation memory:** follow-ups use the last 4 turns and rewrite the question around the entities in them. It is heuristic, not a full dialogue model.
+
+## License
+
+Code: MIT (see `LICENSE`). The papers belong to their authors and publishers. Text is fetched from PubMed Central's
+open-access services and used under each article's license. The derived `data/kb/` is for research and educational use.
+See `CONTRIBUTING.md` to report a wrong answer or contribute.

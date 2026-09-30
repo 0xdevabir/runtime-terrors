@@ -1,12 +1,13 @@
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Columns, Legend, LineChart } from "@/components/charts";
-import { ErrorNote, Page, Section, Segmented, Skeleton } from "@/components/ui";
-import { STUDY_TYPE_LABEL } from "@/lib/api";
+import { DirectionGlyph, ErrorNote, Page, Quote, Section, Segmented, Skeleton, StudyTag } from "@/components/ui";
+import { Novelty, STUDY_TYPE_LABEL } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 
 type TSeries = { key: string; label: string; total: number; counts: number[] };
-type Trends = { years: number[]; per_year: number[]; series: Record<string, TSeries[]>; study_type: Record<string, number[]> };
+type Trends = { years: number[]; per_year: number[]; series: Record<string, TSeries[]>; study_type: Record<string, number[]>; novelty?: Novelty[] };
 type Dim = "stressor" | "organism_group" | "tissue";
 
 const DIMS: { value: Dim; label: string }[] = [
@@ -106,6 +107,22 @@ export default function TrendsPage() {
               ))}
             </Section>
           </div>
+
+          {(data.novelty?.length ?? 0) > 0 && (
+            <Section header="New findings that challenge the consensus"
+              footer="Recent papers reporting the opposite direction to an established majority. Worth a closer look: a new method, organism or duration can overturn older results.">
+              {data.novelty!.slice(0, 10).map((n) => (
+                <Link key={n.paper_id + n.consensus_id} href={`/insights?id=${encodeURIComponent(n.consensus_id)}`} className="row pressable block">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <span className="t-sub font-medium">{n.consensus_id.split("|").map((x) => x.split(":")[1]?.replace(/_/g, " ")).filter(Boolean).join(" · ")}</span>
+                    <span className="t-cap text-label-2 inline-flex items-center gap-1">majority of {n.n_papers} papers: <DirectionGlyph d={n.majority} /> · this paper: <DirectionGlyph d={n.direction} /></span>
+                  </div>
+                  <Quote>{n.quote}</Quote>
+                  <div className="flex items-center gap-2 mt-1.5 t-cap text-label-2"><StudyTag type={n.study_type} />{n.year} · <span className="line-clamp-1">{n.title}</span></div>
+                </Link>
+              ))}
+            </Section>
+          )}
         </>
       )}
     </Page>

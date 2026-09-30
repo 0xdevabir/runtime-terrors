@@ -6,7 +6,7 @@ import type { Core } from "cytoscape";
 import { DIR_COLOR, VoteBar } from "@/components/charts";
 import { Icon } from "@/components/Icon";
 import { Chip, DirectionGlyph, Page, Quote, Row, Section, Segmented, Sheet, StrengthBadge, StudyTag, Tag } from "@/components/ui";
-import { api, Consensus, Finding, GEdge, GNode, PaperCard } from "@/lib/api";
+import { api, Central, Community, Consensus, download, EvidencePath, Finding, GEdge, GNode, PaperCard } from "@/lib/api";
 import { TYPE_META, useEntities } from "@/lib/entities";
 
 type NodeDetail = GNode & { synonyms: string[]; neighbors: { id: string; label: string; relation: string; edge: string; papers: number; majority: string }[]; papers: PaperCard[]; consensus: Consensus[] };
@@ -30,11 +30,16 @@ function Graph() {
   const params = useSearchParams();
   const router = useRouter();
   const focus = params.get("focus") ?? "";
-  const lit = useMemo(() => new Set((params.get("lit") ?? "").split(",").filter(Boolean)), [params]);
+  const pathParam = params.get("path") ?? "";
+  const lit = useMemo(() => new Set((pathParam || params.get("lit") || "").split(",").filter(Boolean)), [params, pathParam]);
   const [types, setTypes] = useState<Set<string>>(new Set(["stressor", "organism", "tissue", "outcome", "countermeasure"]));
   const [minPapers, setMinPapers] = useState(3);
   const [depth, setDepth] = useState<"1" | "2">("1");
-  const [data, setData] = useState<{ nodes: GNode[]; edges: GEdge[] } | null>(null);
+  const [data, setData] = useState<{ nodes: GNode[]; edges: GEdge[]; communities: Community[] } | null>(null);
+  const [yearFrom, setYearFrom] = useState(0);
+  const [yearTo, setYearTo] = useState(0);
+  const [colorBy, setColorBy] = useState<"type" | "theme">("type");
+  const [panel, setPanel] = useState<"" | "path" | "central">("");
   const [error, setError] = useState<unknown>(null);
   const [sel, setSel] = useState<{ kind: "node"; d: NodeDetail } | { kind: "edge"; d: EdgeDetail } | null>(null);
   const [query, setQuery] = useState("");
@@ -49,11 +54,14 @@ function Graph() {
   }, [focus]);
 
   useEffect(() => {
-    const qs = new URLSearchParams({ types: [...types].join(","), min_papers: String(focus ? 1 : minPapers), depth, limit: "220" });
+    const qs = new URLSearchParams({ types: [...types].join(","), min_papers: String(focus || pathParam ? 1 : minPapers), depth, limit: "220" });
     if (focus) qs.set("focus", focus);
+    if (pathParam) qs.set("nodes", pathParam);
+    if (yearFrom) qs.set("year_from", String(yearFrom));
+    if (yearTo) qs.set("year_to", String(yearTo));
     setError(null);
-    api<{ nodes: GNode[]; edges: GEdge[] }>(`/graph?${qs}`).then(setData).catch(setError);
-  }, [types, minPapers, focus, depth]);
+    api<{ nodes: GNode[]; edges: GEdge[]; communities: Community[] }>(`/graph?${qs}`).then(setData).catch(setError);
+  }, [types, minPapers, focus, depth, pathParam, yearFrom, yearTo]);
 
   // re-colour when the theme flips
   useEffect(() => {
@@ -76,13 +84,14 @@ function Graph() {
       const col: Record<string, string> = Object.fromEntries(ALL_TYPES.map((t) => [t, cssVar(TYPE_META[t].color.slice(4, -1))]));
       const dir: Record<string, string> = Object.fromEntries(Object.entries(DIR_COLOR).map(([k, v]) => [k, cssVar(v.slice(4, -1))]));
       const ink = cssVar("--label"), ink2 = cssVar("--label-2"), surface = cssVar("--bg-2"), faint = cssVar("--fill-2");
+      const theme = (c?: number) => (c == null ? ink2 : cssVar(`--series-${(c % 8) + 1}`));
       const maxP = Math.max(...data.nodes.map((n) => n.papers), 1);
       const maxE = Math.max(...data.edges.map((e) => e.paper_count), 1);
       cyRef.current?.destroy();
       const cy = cytoscape({
         container: box.current,
         elements: [
-          ...data.nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: 16 + 44 * Math.sqrt(n.papers / maxP), color: col[n.type] ?? ink2 } })),
+          ...data.nodes.map((n) => ({ data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: 16 + 44 * Math.sqrt(n.papers / maxP), color: colorBy === "theme" ? theme(n.community) : col[n.type] ?? ink2 } })),
           ...data.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, w: 1 + 5 * Math.sqrt(e.paper_count / maxE), color: e.relation === "affects" && e.majority ? dir[e.majority] ?? faint : faint, rel: e.relation } })),
         ],
         style: [
@@ -122,7 +131,7 @@ function Graph() {
       cyRef.current = cy;
     })();
     return () => { destroyed = true; };
-  }, [data, lit, focus, themeTick]);
+  }, [data, lit, focus, themeTick, colorBy]);
 
   useEffect(() => () => cyRef.current?.destroy(), []);
 
@@ -130,6 +139,14 @@ function Graph() {
     ? entities.filter((e) => (e.label + " " + e.synonyms.join(" ")).toLowerCase().includes(query.toLowerCase())).slice(0, 6)
     : [];
   const setFocus = (id: string) => { setQuery(""); router.push(id ? `/graph?focus=${encodeURIComponent(id)}` : "/graph"); };
+  const exportPng = async () => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    download("knowledge-graph.png", await cy.png({ output: "blob-promise", full: true, scale: 2, bg: cssVar("--bg-2") }));
+  };
+  const exportJson = () => data && download("knowledge-graph.json", JSON.stringify(data, null, 1), "application/json");
+  const years = Array.from({ length: 2026 - 1990 + 1 }, (_, i) => 2026 - i);
+  const selCls = "h-8 rounded-lg bg-fill px-2 t-foot";
   const toggle = (t: string) => setTypes((s) => { const n = new Set(s); if (n.has(t)) { if (n.size > 1) n.delete(t); } else n.add(t); return n; });
 
   return (
@@ -160,7 +177,12 @@ function Graph() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-3 no-print">
-        {focus ? (
+        {pathParam ? (
+          <span className="inline-flex items-center gap-2 h-8 pl-3 pr-1 rounded-full bg-tint/12 text-tint t-foot font-semibold">
+            Evidence path: {pathParam.split(",").map(label).join(" → ")}
+            <button onClick={() => router.push("/graph")} className="grid place-items-center w-6 h-6 rounded-full hover:bg-tint/15" aria-label="Clear path"><Icon name="xmark" size={12} stroke={2.6} /></button>
+          </span>
+        ) : focus ? (
           <>
             <span className="inline-flex items-center gap-2 h-8 pl-3 pr-1 rounded-full bg-tint/12 text-tint t-foot font-semibold">
               Focused: {label(focus)}
@@ -175,7 +197,20 @@ function Graph() {
             <span className="tabular-nums text-label font-medium w-5">{minPapers}</span>
           </label>
         )}
+        <select aria-label="From year" className={selCls} value={yearFrom} onChange={(e) => setYearFrom(+e.target.value)}>
+          <option value={0}>From any year</option>{years.map((y) => <option key={y} value={y}>From {y}</option>)}
+        </select>
+        <select aria-label="To year" className={selCls} value={yearTo} onChange={(e) => setYearTo(+e.target.value)}>
+          <option value={0}>To any year</option>{years.map((y) => <option key={y} value={y}>To {y}</option>)}
+        </select>
+        <Segmented size="sm" className="w-[170px]" value={colorBy} onChange={setColorBy} options={[{ value: "type", label: "By type" }, { value: "theme", label: "By theme" }]} />
         {data && <span className="t-foot text-label-2">{data.nodes.length} entities · {data.edges.length} links</span>}
+        <div className="flex gap-1.5 lg:ml-auto">
+          <Chip onClick={() => setPanel("path")}><span className="inline-flex items-center gap-1"><Icon name="split" size={13} />Find path</span></Chip>
+          <Chip onClick={() => setPanel("central")}><span className="inline-flex items-center gap-1"><Icon name="target" size={13} />Key concepts</span></Chip>
+          <Chip onClick={exportPng}>PNG</Chip>
+          <Chip onClick={exportJson}>JSON</Chip>
+        </div>
       </div>
 
       <div className="relative bg-bg-2 rounded-2xl overflow-hidden h-[calc(100dvh-300px)] min-h-[420px]">
@@ -184,7 +219,9 @@ function Graph() {
         {error ? <div className="absolute inset-0 grid place-items-center t-sub text-label-2">Can&apos;t reach the API.</div> : null}
         <div className="absolute left-3 bottom-3 material rounded-xl px-3 py-2 space-y-1.5 border border-sep">
           <div className="flex flex-wrap gap-x-3 gap-y-1 max-w-[520px]">
-            {[...types].map((t) => (
+            {colorBy === "theme" ? (data?.communities ?? []).filter((c) => data?.nodes.some((n) => n.community === c.id)).map((c) => (
+              <span key={c.id} className="inline-flex items-center gap-1.5 t-cap text-label-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: `var(--series-${(c.id % 8) + 1})` }} />{c.label}</span>
+            )) : [...types].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5 t-cap text-label-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: TYPE_META[t].color }} />{TYPE_META[t].label}</span>
             ))}
           </div>
@@ -207,6 +244,12 @@ function Graph() {
         {sel?.kind === "node" && <NodePanel d={sel.d} onFocus={setFocus} />}
         {sel?.kind === "edge" && <EdgePanel d={sel.d} />}
       </Sheet>
+      <Sheet open={panel === "path"} onClose={() => setPanel("")} title="Evidence path finder">
+        <PathFinder initial={focus} onShow={(ids) => { setPanel(""); router.push(`/graph?path=${encodeURIComponent(ids.join(","))}`); }} />
+      </Sheet>
+      <Sheet open={panel === "central"} onClose={() => setPanel("")} title="Key concepts & research themes">
+        <CentralPanel onFocus={(id) => { setPanel(""); setFocus(id); }} />
+      </Sheet>
     </Page>
   );
 }
@@ -219,6 +262,11 @@ function NodePanel({ d, onFocus }: { d: NodeDetail; onFocus: (id: string) => voi
         {d.group && <Tag>{d.group}</Tag>}
         {d.ontology && <Tag tone="teal">{d.ontology}</Tag>}
       </div>
+      {d.pagerank != null && (
+        <div className="t-foot text-label-2 mb-4">
+          Centrality: PageRank {d.pagerank.toFixed(3)} · bridging score {(d.betweenness ?? 0).toFixed(3)}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.papers}</div><div className="t-foot text-label-2">papers</div></div>
         <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.flight_papers}</div><div className="t-foot text-label-2">from spaceflight</div></div>
@@ -274,6 +322,94 @@ function EdgePanel({ d }: { d: EdgeDetail }) {
       )}
       <Section header="Publications">
         {d.paper_cards.slice(0, 15).map((p) => <Row key={p.id} href={`/papers/${p.id}`} title={<span className="t-sub line-clamp-2">{p.title}</span>} subtitle={`${p.year}`} />)}
+      </Section>
+    </div>
+  );
+}
+
+function EntityPicker({ value, onChange, placeholder }: { value: string; onChange: (id: string) => void; placeholder: string }) {
+  const { entities } = useEntities();
+  return (
+    <select aria-label={placeholder} className="w-full h-10 rounded-xl bg-bg-2 border border-sep px-3 t-sub" value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{placeholder}</option>
+      {Object.entries(TYPE_META).map(([t, m]) => (
+        <optgroup key={t} label={m.label}>
+          {entities.filter((e) => e.type === t && e.papers > 0).sort((a, b) => a.label.localeCompare(b.label)).map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+function PathFinder({ initial, onShow }: { initial: string; onShow: (ids: string[]) => void }) {
+  const [a, setA] = useState(initial);
+  const [b, setB] = useState("");
+  const [res, setRes] = useState<EvidencePath[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = () => {
+    if (!a || !b || a === b) return;
+    setBusy(true);
+    api<{ paths: EvidencePath[] }>(`/graph/path?source=${encodeURIComponent(a)}&target=${encodeURIComponent(b)}&k=3`)
+      .then((r) => setRes(r.paths)).catch(() => setRes([])).finally(() => setBusy(false));
+  };
+  return (
+    <div className="space-y-3">
+      <p className="t-foot text-label-2">How are two concepts connected in the literature? Paths prefer links backed by many papers.</p>
+      <EntityPicker value={a} onChange={setA} placeholder="From (e.g. Space radiation)" />
+      <EntityPicker value={b} onChange={setB} placeholder="To (e.g. Heart)" />
+      <button onClick={run} disabled={!a || !b || a === b || busy} className="w-full h-11 rounded-xl bg-tint text-white t-headline btn-press disabled:opacity-40">
+        {busy ? "Searching…" : "Find evidence paths"}
+      </button>
+      {res && res.length === 0 && <p className="t-sub text-label-2">No connecting evidence found.</p>}
+      {res?.map((p, i) => (
+        <div key={i} className="bg-bg-2 rounded-2xl p-4">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="t-foot font-semibold text-label-2">Path {i + 1} · weakest link {p.support} papers</span>
+            <button onClick={() => onShow(p.nodes.map((n) => n.id))} className="t-foot text-tint">Show on graph</button>
+          </div>
+          {p.steps.map((s) => (
+            <div key={s.edge} className="py-2 hairline-t first:border-0">
+              <div className="t-sub">
+                <b>{s.source_label}</b> <span className="text-label-2">{REL_LABEL[s.relation] ?? s.relation}</span> <b>{s.target_label}</b>
+                {s.majority && <span className="ml-1.5 inline-block align-middle"><DirectionGlyph d={s.majority} /></span>}
+              </div>
+              <div className="t-cap text-label-2 mt-0.5">{s.paper_count} papers</div>
+              {s.papers.slice(0, 2).map((pc) => (
+                <Link key={pc.id} href={`/papers/${pc.id}`} className="block t-cap text-tint line-clamp-1 mt-0.5">{pc.title}</Link>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CentralPanel({ onFocus }: { onFocus: (id: string) => void }) {
+  const [d, setD] = useState<{ pagerank: Central[]; betweenness: Central[]; communities: Community[] } | null>(null);
+  const { label } = useEntities();
+  useEffect(() => { api<typeof d>("/graph/analytics?top=8").then(setD).catch(() => {}); }, []);
+  if (!d) return <p className="t-sub text-label-2">Loading…</p>;
+  return (
+    <div>
+      <Section header="Most connected (PageRank)" footer="Concepts that many well-supported links point to.">
+        {d.pagerank.map((n) => <Row key={n.id} onClick={() => onFocus(n.id)} title={n.label} subtitle={`${TYPE_META[n.type]?.label} · ${n.papers} papers`} detail={n.pagerank.toFixed(3)} />)}
+      </Section>
+      <Section header="Bridges between fields (betweenness)" footer="Concepts that connect otherwise separate research areas.">
+        {d.betweenness.map((n) => <Row key={n.id} onClick={() => onFocus(n.id)} title={n.label} subtitle={`${TYPE_META[n.type]?.label} · ${n.papers} papers`} detail={n.betweenness.toFixed(3)} />)}
+      </Section>
+      <Section header={`Research themes (${d.communities.length})`} footer="Communities detected from the co-evidence graph (modularity clustering).">
+        {d.communities.map((c) => (
+          <div key={c.id} className="row block">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: `var(--series-${(c.id % 8) + 1})` }} />
+              <span className="t-sub font-medium flex-1">{c.label}</span><span className="t-cap text-label-2">{c.size} concepts</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {c.top.slice(0, 6).map((id) => <Chip key={id} onClick={() => onFocus(id)}>{label(id)}</Chip>)}
+            </div>
+          </div>
+        ))}
       </Section>
     </div>
   );

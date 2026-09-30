@@ -16,6 +16,9 @@ export const NAV: { title: string; items: NavItem[] }[] = [
     { href: "/papers", label: "Publications", icon: "books", color: "var(--orange)" },
     { href: "/gaps", label: "Evidence Gaps", icon: "grid", color: "var(--teal)" },
     { href: "/trends", label: "Trends", icon: "chart", color: "var(--green)" },
+    { href: "/topics", label: "Topics", icon: "doc", color: "var(--blue)" },
+    { href: "/compare", label: "Compare Papers", icon: "split", color: "var(--indigo)" },
+    { href: "/glossary", label: "Glossary", icon: "quote", color: "var(--gray)" },
   ] },
   { title: "Decide", items: [
     { href: "/insights", label: "Consensus & Conflicts", icon: "split", color: "var(--red)" },
@@ -72,7 +75,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="p-4 hairline-t space-y-3">
           <div className="t-foot font-semibold text-label-2">Viewing as</div>
-          <div className="grid grid-cols-3 gap-1 p-0.5 rounded-[9px] bg-fill">
+          <div className="grid grid-cols-2 gap-1 p-0.5 rounded-[9px] bg-fill">
             {PERSONAS.map((p) => (
               <button key={p.id} onClick={() => setPersona(p.id)} title={p.blurb}
                 className={`t-cap font-medium h-7 rounded-[7px] transition-all ${persona === p.id ? "bg-bg-2 shadow-sm" : "text-label-2"}`}>

@@ -29,6 +29,7 @@ class KB:
         self.hypotheses: list[dict] = load("hypotheses.json")
         self.stats: dict = load("stats.json")
         self.entities: list[dict] = load("entities.json")
+        self.takeaways: dict = load("takeaways.json") if (KB_DIR / "takeaways.json").exists() else {}
         self.chunks: list[dict] = [json.loads(l) for l in open(KB_DIR / "chunks.jsonl")]
         self.findings_by_paper: dict[str, list] = defaultdict(list)
         for f in self.findings:
@@ -65,7 +66,8 @@ class KB:
     def paper_card(self, pid: str) -> dict:
         p = self.paper[pid]
         return {k: p.get(k) for k in ("id", "title", "year", "journal", "url", "doi", "study_type", "organisms", "stressors",
-                                      "platforms", "tissues", "osdr_ids", "full_text", "n_findings")} | {
+                                      "platforms", "tissues", "osdr_ids", "full_text", "n_findings", "sample_size", "missions",
+                                      "duplicate_of")} | {
             "key_finding": p["summary"]["key_finding"], "authors": p["authors"][:3], "n_authors": len(p["authors"])}
 
     def finding_card(self, fid: str) -> dict:

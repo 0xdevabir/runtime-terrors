@@ -28,3 +28,6 @@ data/kb/papers_raw.json
 
 .DS_Store
 data/kb/emb_parts/
+
+# runtime logs (audit trail, feedback, request log)
+data/logs/

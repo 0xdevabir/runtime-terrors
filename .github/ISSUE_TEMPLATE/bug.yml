@@ -1,0 +1,11 @@
+name: Bug or feature request
+description: Something broken, or an idea
+body:
+  - type: dropdown
+    id: kind
+    attributes: {label: Kind, options: [Bug, Feature request]}
+    validations: {required: true}
+  - type: textarea
+    id: details
+    attributes: {label: Details, description: "Steps to reproduce / expected vs actual, or the feature and who it helps"}
+    validations: {required: true}

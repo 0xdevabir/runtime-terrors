@@ -39,7 +39,7 @@ def briefing(kb: KB, profile: dict) -> dict:
             "countermeasures": r["countermeasures"][:4],
             "contradictions": [{"id": c, "label": " · ".join(filter(None, (kb.label(x) for x in c.split("|"))))}
                                for c in r["contradictions"]],
-            "gaps": list(dict.fromkeys(gaps)),
+            "gaps": list(dict.fromkeys(gaps)), "readiness": readiness(r, profile),
         })
     risks.sort(key=lambda x: -x["priority"])
     for i, r in enumerate(risks):
@@ -65,3 +65,24 @@ def narrative(profile: dict, risks: list[dict]) -> str:
 
 def presets() -> list[dict]:
     return list(MISSION_PRESETS.values())
+
+
+def readiness(r: dict, profile: dict) -> dict:
+    """Evidence readiness for this mission: five transparent checks, not a validated NASA metric."""
+    need_days = profile.get("duration_days", 0)
+    cms = [c for c in r["countermeasures"] if c.get("effective")]
+    checks = [
+        {"label": "Effect well characterised", "ok": r["n_papers"] >= 10 and r["strength"]["score"] >= 0.5,
+         "detail": f"{r['n_papers']} papers, evidence strength {r['strength']['label']}"},
+        {"label": "Human spaceflight data", "ok": r["n_human"] >= 3 and r["n_flight"] >= 3,
+         "detail": f"{r['n_human']} human studies, {r['n_flight']} flight studies"},
+        {"label": "Duration covered", "ok": bool(r.get("max_days")) and r["max_days"] >= min(need_days, 365),
+         "detail": f"longest study {int(r.get('max_days') or 0)} days vs {need_days}-day mission"},
+        {"label": "Partial gravity studied", "ok": bool(r.get("has_partial_gravity")) or not profile.get("partial_gravity_days"),
+         "detail": "not needed for this profile" if not profile.get("partial_gravity_days") else
+                   ("measured" if r.get("has_partial_gravity") else "no Moon/Mars-gravity evidence")},
+        {"label": "Countermeasure shown to work", "ok": bool(cms),
+         "detail": ", ".join(c["label"] for c in cms[:2]) if cms else "none reported effective in the corpus"},
+    ]
+    level = sum(c["ok"] for c in checks)
+    return {"level": level, "of": len(checks), "label": ["not ready", "early", "early", "partial", "partial", "ready"][level], "checks": checks}

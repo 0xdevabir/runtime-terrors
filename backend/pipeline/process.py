@@ -24,10 +24,23 @@ SECTION_LABEL = {
 WORDS_PER_CHUNK = 180
 
 
+# in-text reference markers and figure/table pointers: noise for retrieval and evidence quotes
+CITE_NUM = re.compile(r"\s?\[\d{1,3}(?:\s?[-–,]\s?\d{1,3})*\]")
+CITE_AUTHOR = re.compile(r"\s?\((?:(?:see |e\.g\., ?)?[A-Z][\w'\-]+(?: et al\.?| and [A-Z][\w'\-]+| & [A-Z][\w'\-]+)?,? (?:19|20)\d{2}[a-z]?(?:, ?(?:19|20)\d{2}[a-z]?)*;?\s?)+\)")
+_FIG = r"(?:Supplementary |Suppl\.? )?(?:Fig(?:ure)?s?|Tables?)\.?\s?S?\d+[A-Za-z]?(?:\s?[,–\-]\s?S?\d*[A-Za-z]?)*"
+FIG_REF = re.compile(r"\s?\((?:see )?" + _FIG + r"(?:\s?[;,]\s?(?:and )?" + _FIG + r")*\)")
+
+
 def _clean(t: str) -> str:
     t = html.unescape(t)
     t = re.sub(r"\s+", " ", t)
     return t.strip()
+
+
+def _clean_body(t: str) -> str:
+    """_clean, plus strip reference markers and figure/table pointers from running text."""
+    t = FIG_REF.sub("", CITE_AUTHOR.sub("", CITE_NUM.sub("", _clean(t))))
+    return re.sub(r"\s+([.,;:])", r"\1", t).strip()
 
 
 def parse_bioc(d: dict) -> dict:
@@ -45,7 +58,7 @@ def parse_bioc(d: dict) -> dict:
             continue
         if typ.startswith("title") or typ.endswith("title_1") or typ in ("fig_title_caption",):
             continue
-        sections.append({"type": st, "text": _clean(p["text"])})
+        sections.append({"type": st, "text": _clean(p["text"]) if st == "FIG" else _clean_body(p["text"])})
     title = _clean(doc["passages"][0]["text"]) if doc["passages"] else d["row"]["title"]
     return {
         "title": title or d["row"]["title"],
@@ -86,7 +99,7 @@ def parse_xml(d: dict) -> dict:
     for ab in art.findall(".//abstract"):
         if ab.get("abstract-type") in ("graphical", "teaser"):
             continue
-        paras = [txt(p) for p in ab.iter("p")] or [txt(ab)]
+        paras = [_clean_body(txt(p)) for p in ab.iter("p")] or [_clean_body(txt(ab))]
         sections += [{"type": "ABSTRACT", "text": p} for p in paras if p]
     body = art.find(".//body")
     if body is not None:
@@ -94,7 +107,7 @@ def parse_xml(d: dict) -> dict:
             head = (sec.findtext("title") or "").lower()
             st = ("METHODS" if "method" in head or "material" in head else "RESULTS" if "result" in head
                   else "DISCUSS" if "discussion" in head else "CONCL" if "conclu" in head else "INTRO")
-            sections += [{"type": st, "text": txt(p)} for p in sec.iter("p") if txt(p)]
+            sections += [{"type": st, "text": _clean_body(txt(p))} for p in sec.iter("p") if txt(p)]
     return {
         "title": txt(art.find(".//article-title")) or d["row"]["title"],
         "year": year,
@@ -136,6 +149,24 @@ def chunk_sections(pid: str, sections: list[dict]) -> list[dict]:
         buf.append(s["text"])
     flush()
     return chunks
+
+
+def mark_duplicates(papers: list[dict]) -> int:
+    """Flag near-duplicate versions: same DOI, or titles >= 95% similar with the same first author.
+    The richest version (full text, most words) is kept as the original."""
+    from rapidfuzz import fuzz
+
+    norm = lambda t: re.sub(r"[^a-z0-9 ]", "", (t or "").lower())
+    first = lambda p: p["authors"][0].split()[-1].lower() if p["authors"] and p["authors"][0].split() else ""
+    kept: list[dict] = []
+    for p in sorted(papers, key=lambda p: (not p["full_text"], -(p["word_count"] or 0))):
+        dup = next((q for q in kept if (p["doi"] and p["doi"] == q["doi"]) or
+                    (first(p) == first(q) and fuzz.token_sort_ratio(norm(p["title"]), norm(q["title"])) >= 95)), None)
+        if dup:
+            p["duplicate_of"] = dup["id"]
+        else:
+            kept.append(p)
+    return len(papers) - len(kept)
 
 
 def fetch_journals(pmids: list[str]) -> dict[str, str]:
@@ -181,6 +212,8 @@ def main() -> None:
         papers.append(paper)
         chunks += chunk_sections(pid, [{"type": "ABSTRACT", "text": p["title"]}] + p["sections"] if not abstract else p["sections"])
 
+    dups = mark_duplicates(papers)
+    print(f"[process] {dups} near-duplicate papers flagged (kept for browsing, excluded from findings)")
     missing = [p["pmid"] for p in papers if p["pmid"] and not p["journal"]]
     journals = fetch_journals(missing) if missing else {}
     for p in papers:

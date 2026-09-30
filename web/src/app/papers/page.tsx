@@ -1,9 +1,11 @@
 "use client";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Chip, Empty, ErrorNote, LoadingList, Page, Row, SearchField, Segmented, StudyTag, Tag } from "@/components/ui";
-import { api, PaperCard } from "@/lib/api";
+import { API, api, PaperCard } from "@/lib/api";
+import { useBookmarks } from "@/lib/bookmarks";
 import { useEntities } from "@/lib/entities";
 
 const TYPES = [
@@ -22,6 +24,8 @@ function Papers() {
   const [applied, setApplied] = useState(sp.get("q") ?? "");
   const [type, setType] = useState("");
   const [osdr, setOsdr] = useState(false);
+  const [onlySaved, setOnlySaved] = useState(false);
+  const { saved, has, toggle } = useBookmarks();
   const [sort, setSort] = useState<"year" | "findings" | "title">("year");
   const [facet, setFacet] = useState<{ organism?: string; stressor?: string; tissue?: string }>({
     organism: sp.get("organism") ?? undefined, stressor: sp.get("stressor") ?? undefined, tissue: sp.get("tissue") ?? undefined,
@@ -36,6 +40,7 @@ function Papers() {
     if (applied) p.set("q", applied);
     if (type) p.set("study_type", type);
     if (osdr) p.set("osdr", "true");
+    if (onlySaved) p.set("ids", saved.join(",") || "none");
     Object.entries(facet).forEach(([k, v]) => v && p.set(k, v));
     return p.toString();
   };
@@ -43,7 +48,7 @@ function Papers() {
   useEffect(() => {
     setItems(null); setError(null);
     api<{ total: number; items: PaperCard[] }>(`/papers?${qs(0)}`).then((r) => { setItems(r.items); setTotal(r.total); }).catch(setError);
-  }, [applied, type, osdr, sort, facet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applied, type, osdr, sort, facet, onlySaved, onlySaved && saved.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const more = () => api<{ total: number; items: PaperCard[] }>(`/papers?${qs(items!.length)}`).then((r) => setItems((x) => [...(x ?? []), ...r.items]));
   const top = (t: string) => entities.filter((e) => e.type === t && e.papers > 0).sort((a, b) => b.papers - a.papers).slice(0, 10);
@@ -52,12 +57,14 @@ function Papers() {
 
   return (
     <Page title="Publications" subtitle="Every paper in the NASA space biology corpus, searchable by meaning and filterable by what was studied."
+      trailing={<a href={`${API}/api/export/papers?format=csv`} className="t-sub text-tint" title="Download all papers as CSV">Export CSV</a>}
       toolbar={
         <div className="space-y-3">
           <SearchField value={q} onChange={(v) => { setQ(v); if (!v) setApplied(""); }} onSubmit={() => setApplied(q.trim())} placeholder="Search titles and full text" />
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
             {TYPES.map((t) => <Chip key={t.l} active={type === t.v} onClick={() => setType(t.v)}>{t.l}</Chip>)}
             <Chip active={osdr} onClick={() => setOsdr(!osdr)}><Icon name="database" size={14} />Has OSDR data</Chip>
+            <Chip active={onlySaved} onClick={() => setOnlySaved(!onlySaved)}><Icon name="check" size={14} />Saved{saved.length ? ` · ${saved.length}` : ""}</Chip>
           </div>
           <details className="group/f">
             <summary className="list-none cursor-pointer t-sub text-tint inline-flex items-center gap-1">
@@ -94,13 +101,27 @@ function Papers() {
           options={[{ value: "year", label: "Newest" }, { value: "findings", label: "Findings" }, { value: "title", label: "A–Z" }]} />
       </div>
 
+      {onlySaved && saved.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 t-foot">
+          <span className="text-label-2">Saved papers:</span>
+          {(["bibtex", "ris", "csv"] as const).map((f) => (
+            <a key={f} className="text-tint" href={`${API}/api/export/papers?format=${f}&ids=${saved.join(",")}`}>{f === "bibtex" ? "BibTeX" : f.toUpperCase()}</a>
+          ))}
+          {saved.length >= 2 && <Link className="text-tint" href={`/compare?ids=${saved.slice(0, 4).join(",")}`}>Compare {Math.min(saved.length, 4)} side by side</Link>}
+        </div>
+      )}
       {error ? <ErrorNote error={error} /> : !items ? <LoadingList rows={8} /> : items.length === 0 ? (
-        <Empty title="No publications" text="Try a broader search or remove a filter." />
+        <Empty title="No publications" text={onlySaved ? "Save papers with the bookmark on each paper page." : "Try a broader search or remove a filter."} />
       ) : (
         <>
           <div className="group mb-4">
             {items.map((p) => (
               <Row key={p.id} href={`/papers/${p.id}`}
+                detail={<span role="button" tabIndex={0} aria-label={has(p.id) ? "Remove from saved" : "Save paper"}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(p.id); }}
+                  className={`grid place-items-center w-8 h-8 rounded-full hover:bg-fill ${has(p.id) ? "text-tint" : "text-label-3"}`}>
+                  <Icon name={has(p.id) ? "checkCircle" : "circle"} size={18} />
+                </span>}
                 title={<span className="line-clamp-2 font-medium">{p.title}</span>}
                 subtitle={
                   <span className="block">
@@ -111,6 +132,8 @@ function Papers() {
                       {p.organisms.slice(0, 2).map((o) => <Tag key={o}>{label(o)}</Tag>)}
                       {p.osdr_ids.length > 0 && <Tag tone="teal">OSDR</Tag>}
                       {!p.full_text && <Tag tone="orange">Abstract only</Tag>}
+                      {p.sample_size ? <Tag>n = {p.sample_size}</Tag> : null}
+                      {p.missions?.slice(0, 2).map((m) => <Tag key={m} tone="purple">{m}</Tag>)}
                     </span>
                   </span>
                 } />

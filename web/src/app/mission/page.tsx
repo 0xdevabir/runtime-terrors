@@ -134,12 +134,33 @@ function RiskCard({ r, rank, open, onToggle }: { r: MissionRisk; rank: number; o
               <StrengthBadge s={r.evidence.strength} />
               <span>{r.evidence.n_papers} papers · {r.evidence.n_flight} spaceflight · {r.evidence.n_human} human</span>
               {r.contradictions.length > 0 && <span className="inline-flex items-center gap-1"><Icon name="split" size={13} />{r.contradictions.length} conflicts</span>}
+              {r.readiness && (
+                <span className="inline-flex items-center gap-1.5" title="Evidence readiness: transparent checklist, not a NASA readiness level">
+                  <span className="flex gap-[2px]">{Array.from({ length: r.readiness.of }, (_, i) => (
+                    <span key={i} className="w-2 h-2 rounded-[2px]" style={{ background: i < r.readiness!.level ? "var(--green)" : "var(--fill-2)" }} />
+                  ))}</span>
+                  Evidence readiness: {r.readiness.label}
+                </span>
+              )}
             </div>
           </div>
           <Icon name="chevronDown" size={14} stroke={2.4} className={`text-label-3 mt-1.5 transition-transform no-print ${open ? "rotate-180" : ""}`} />
         </div>
       </button>
       <div className={`px-4 pb-4 pl-[52px] ${open ? "anim-fade" : "hidden print:block"}`}>
+        {r.readiness && (
+          <>
+            <div className="t-foot font-semibold text-label-2 uppercase mb-2">Evidence readiness for this mission · {r.readiness.level}/{r.readiness.of}</div>
+            <ul className="space-y-1 mb-4">
+              {r.readiness.checks.map((c) => (
+                <li key={c.label} className="flex items-start gap-2 t-sub">
+                  <span className={`mt-0.5 ${c.ok ? "text-green" : "text-orange"}`}><Icon name={c.ok ? "checkCircle" : "warn"} size={15} stroke={2.2} /></span>
+                  <span><span className="font-medium">{c.label}</span> <span className="text-label-2">· {c.detail}</span></span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         {r.key_findings.length > 0 && (
           <>
             <div className="t-foot font-semibold text-label-2 uppercase mb-2">Key evidence</div>

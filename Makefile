@@ -2,7 +2,7 @@
 # pass backend/.env to uv when present (ANTHROPIC_API_KEY etc.)
 RUN = uv run $$( [ -f .env ] && echo --env-file .env )
 
-.PHONY: help setup data fetch process extract collect build embed eval api web dev docker
+.PHONY: help setup data fetch process extract collect build embed eval test label api web dev docker up
 
 help:
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /\t/' | column -t -s $$'\t'
@@ -32,7 +32,13 @@ embed: ## (Re)compute dense passage embeddings only (~30 min on CPU; resumable, 
 	cd backend && uv run python -m pipeline.embed
 
 
-eval: ## Score retrieval, refusals, and citations on the fixed question set
+test: ## Backend unit tests
+	cd backend && uv run --with pytest pytest -q
+
+label: ## Sample 100 extracted findings into backend/eval/extraction_labels.csv for human accuracy labelling
+	cd backend && uv run python -m eval.extraction sample --n 100
+
+eval: ## Score retrieval (with per-stage baselines), refusals, citations and faithfulness
 	cd backend && $(RUN) python -m eval.run_eval
 
 api: ## Run the API on :8000
@@ -46,3 +52,6 @@ dev: ## Run API and web together
 
 docker: ## Build the API image (bundles data/kb)
 	docker build -f backend/Dockerfile -t spacebio-api .
+
+up: ## Run the whole stack in Docker (API :8000, web :3000)
+	docker compose up --build

@@ -92,6 +92,27 @@ function Detail({ id }: { id: string }) {
       </div>
       <div className="bg-bg-2 rounded-2xl p-4 mb-4"><VoteBar votes={c.votes} height={12} /></div>
 
+      {(c.timeline?.length ?? 0) > 1 && (
+        <div className="bg-bg-2 rounded-2xl p-4 mb-4">
+          <div className="t-foot font-semibold text-label-2 mb-2">How the evidence accumulated</div>
+          <div className="space-y-1">
+            {c.timeline!.map(({ year, ...votes }) => {
+              const n = Object.values(votes).reduce((a, b) => a + (b ?? 0), 0);
+              return (
+                <div key={year} className="flex items-center gap-2">
+                  <span className="w-9 t-cap text-label-2 tabular-nums">{year}</span>
+                  <div className="flex-1" style={{ maxWidth: `${Math.max(12, (100 * n) / c.n_papers)}%` }}>
+                    <VoteBar votes={votes as Record<string, number>} height={8} legend={false} />
+                  </div>
+                  <span className="t-cap2 text-label-2 tabular-nums">{n}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="t-cap2 text-label-3 mt-2">Cumulative papers per direction by publication year.</div>
+        </div>
+      )}
+
       {c.explanations.length > 0 && (
         <div className="bg-bg-2 rounded-2xl p-4 mb-5">
           <div className="t-headline mb-2 flex items-center gap-2"><span className="text-orange"><Icon name="info" size={18} /></span>Possible reasons for disagreement</div>

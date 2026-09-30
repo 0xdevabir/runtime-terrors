@@ -28,6 +28,12 @@ const SUGGESTED: Record<string, string[]> = {
     "How does partial gravity affect the musculoskeletal system?",
     "Can crops be grown reliably in spaceflight conditions?",
   ],
+  student: [
+    "What happens to astronauts' bones in space?",
+    "Why do muscles get weaker in microgravity?",
+    "Can plants grow on the Moon or Mars?",
+    "Is space radiation dangerous for the brain?",
+  ],
 };
 
 export default function Home() {
@@ -62,7 +68,7 @@ export default function Home() {
 
       {/* Persona */}
       <Section header="Viewing as" footer={p.blurb}>
-        <div className="p-2"><Segmented value={persona} onChange={setPersona} options={PERSONAS.map((x) => ({ value: x.id, label: x.label }))} /></div>
+        <div className="p-2"><Segmented value={persona} onChange={setPersona} options={PERSONAS.map((x) => ({ value: x.id, label: x.short }))} /></div>
       </Section>
 
       {error ? <ErrorNote error={error} /> : null}
@@ -127,7 +133,7 @@ export default function Home() {
       {s && (
         <p className="t-foot text-label-2 pb-6 flex flex-wrap items-center gap-2">
           <Tag tone={s.llm ? "purple" : "gray"}>{s.llm ? "Claude answers on" : "Extractive mode"}</Tag>
-          Corpus {s.years[0]}–{s.years[1]} · {s.chunks.toLocaleString()} passages indexed · {s.nodes} entities · {s.edges} relations ·
+          Corpus {s.years[0]}–{s.years[1]} · {s.chunks.toLocaleString()} passages indexed{s.dense ? " (hybrid BM25 + dense)" : ""} · {s.nodes} entities · {s.edges} relations ·
           quote-verified findings {s.quote_guard.rules_verified ?? 0}/{s.quote_guard.rules_total ?? 0}
         </p>
       )}

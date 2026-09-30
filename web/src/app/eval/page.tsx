@@ -15,7 +15,11 @@ type EvalRow = {
 type Eval = {
   generated_at: string; mode: string; dense_retrieval: boolean; n_questions: number; n_answerable: number; n_unanswerable: number;
   metrics: Record<string, number | null>; rows: EvalRow[];
+  baselines?: Record<string, Record<string, number>>;
+  extraction?: { status: "unlabelled" | "labelled"; n_sampled: number; fields?: Record<string, { precision: number; n: number } | null> } | null;
 };
+
+const STAGE: Record<string, string> = { bm25: "BM25 keywords", dense: "Dense embeddings", hybrid: "Hybrid (RRF + boosts)", rerank: "Hybrid + cross-encoder" };
 
 const METRICS: { k: string; label: string; help: string }[] = [
   { k: "hit@5", label: "Relevant paper in top 5", help: "Share of answerable questions where a topically relevant publication is among the first five retrieved." },
@@ -23,6 +27,8 @@ const METRICS: { k: string; label: string; help: string }[] = [
   { k: "answer_rate", label: "Answers in-domain questions", help: "Answerable questions that were answered instead of refused." },
   { k: "refusal_accuracy", label: "Refuses off-topic questions", help: "Questions outside space biology that were correctly declined instead of answered." },
   { k: "citation_validity", label: "Citations point to real sources", help: "Every [n] marker must refer to a passage that was actually retrieved." },
+  { k: "faithfulness", label: "Claim support (faithfulness)", help: "Average lexical overlap between each answer sentence and the passage it cites. A proxy: high overlap means the claim is stated in the source." },
+  { k: "supported_sentences", label: "Sentences backed by their citation", help: "Share of cited answer sentences whose cited passage covers at least half of their content words." },
   { k: "quote_guard", label: "Findings quoted verbatim", help: "Extracted findings whose evidence sentence was found word-for-word in the paper." },
 ];
 
@@ -39,6 +45,8 @@ export default function EvalPage() {
         <Row icon="checkCircle" iconBg="var(--green)" title="Citation check" subtitle="After each answer, every citation is verified against the retrieved sources; invalid ones are struck through in red." />
         <Row icon="split" iconBg="var(--red)" title="Conflicts surfaced, not hidden" subtitle="When papers disagree, the answer shows the vote split and likely reasons alongside it." />
         <Row icon="warn" iconBg="var(--orange)" title="Refuses when evidence is thin" subtitle="Low-coverage or off-topic questions get an explicit 'not enough evidence' reply instead of a guess." />
+        <Row icon="target" iconBg="var(--purple)" title="Claim-by-claim support and a confidence label" subtitle="Each answer sentence is checked against the passage it cites; weakly supported claims are flagged, and a high / medium / low confidence label explains why." />
+        <Row icon="person" iconBg="var(--pink)" title="Feedback and audit log" subtitle="Every answer can be rated; questions, retrieved passages and citations are logged to data/logs for review." />
         <Row icon="seal" iconBg="var(--teal)" title="Verbatim evidence quotes" subtitle={s ? `${s.quote_guard.rules_verified ?? 0} of ${s.quote_guard.rules_total ?? 0} extracted findings carry a sentence found word-for-word in the source paper.` : "Each finding carries a sentence found word-for-word in the source paper."} />
       </Section>
 
@@ -72,6 +80,35 @@ export default function EvalPage() {
           <p className="t-cap text-label-2 mb-8">
             Relevance is judged by a topic pattern over paper titles, so these are lenient topical-retrieval scores rather than exact-paper recall. Median answer latency {data.metrics.latency_p50_s}s.
           </p>
+
+          {data.baselines && Object.keys(data.baselines).length > 0 && (
+            <Section header="Retrieval by pipeline stage" footer="Same questions, each retrieval stage on its own. Shows what each component adds.">
+              <div className="row block overflow-x-auto">
+                <table className="w-full t-foot tabular-nums">
+                  <thead><tr className="text-label-2 text-left"><th className="font-medium py-1">Stage</th><th className="font-medium">Hit@1</th><th className="font-medium">Hit@5</th><th className="font-medium">Hit@10</th><th className="font-medium">MRR</th></tr></thead>
+                  <tbody>
+                    {Object.entries(data.baselines).map(([k, b]) => (
+                      <tr key={k} className="hairline-t"><td className="py-1.5">{STAGE[k] ?? k}</td><td>{b["hit@1"]}</td><td>{b["hit@5"]}</td><td>{b["hit@10"]}</td><td>{b.rr}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
+
+          <Section header="Extraction accuracy (human-labelled)"
+            footer={<>Labels have to come from people. Run <code className="font-mono">make label</code>, fill the y/n columns in <code className="font-mono">backend/eval/extraction_labels.csv</code>, then <code className="font-mono">make eval</code>.</>}>
+            {data.extraction?.status === "labelled" && data.extraction.fields ? (
+              Object.entries(data.extraction.fields).map(([f, v]) => (
+                <div key={f} className="row"><span className="flex-1 t-sub capitalize">{f}</span>
+                  <span className="t-foot text-label-2 tabular-nums">{v ? `${Math.round(v.precision * 100)}% correct · n=${v.n}` : "not labelled"}</span></div>
+              ))
+            ) : (
+              <div className="row t-sub text-label-2">
+                {data.extraction ? `${data.extraction.n_sampled} findings sampled, waiting for labels.` : "No labelled sample yet, so extraction precision is not reported."}
+              </div>
+            )}
+          </Section>
 
           <div className="flex items-center justify-between mb-2">
             <div className="section-header !p-0">Question by question</div>

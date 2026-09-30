@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ErrorNote, LoadingList, Page, Row, Section, Segmented, Sheet, Skeleton, StudyTag } from "@/components/ui";
-import { api, GapMatrix, PaperCard } from "@/lib/api";
+import { api, DurationGap, GapMatrix, PaperCard, SpeciesBias } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 
 type Dim = "organism" | "tissue" | "outcome";
@@ -13,7 +13,7 @@ const BINS = [1, 2, 4, 8, 16, 32, 64];
 const bin = (n: number) => (n <= 0 ? 0 : Math.min(7, BINS.findIndex((b) => n < b) === -1 ? 7 : BINS.findIndex((b) => n < b)));
 
 export default function GapsPage() {
-  const { data, error } = useApi<Record<Dim, GapMatrix>>("/gaps");
+  const { data, error } = useApi<Record<Dim, GapMatrix> & { species_bias?: SpeciesBias; duration?: DurationGap }>("/gaps");
   const [dim, setDim] = useState<Dim>("organism");
   const [flight, setFlight] = useState(false);
   const [cell, setCell] = useState<{ r: string; c: string } | null>(null);
@@ -118,6 +118,11 @@ export default function GapsPage() {
                 detail={<Link href={`/ask?q=${encodeURIComponent(`What is known about ${g.c.label.toLowerCase()} effects on ${g.r.label.toLowerCase()}?`)}`} onClick={(e) => e.stopPropagation()} className="text-tint t-foot">Ask</Link>} />
             ))}
           </Section>
+
+          <div className="grid lg:grid-cols-2 gap-x-6">
+            {data?.species_bias && <SpeciesBiasView d={data.species_bias} />}
+            {data?.duration && <DurationView d={data.duration} />}
+          </div>
         </>
       )}
 
@@ -149,5 +154,65 @@ function CellPapers({ ids, flight }: { ids: string[]; flight: number }) {
         </div>
       )}
     </>
+  );
+}
+
+const GROUP_COLOR: Record<string, string> = {
+  Human: "var(--series-1)", Rodent: "var(--series-2)", "Other animal": "var(--series-3)",
+  "Cell culture": "var(--series-4)", Plant: "var(--series-6)", Microbe: "var(--series-7)",
+};
+
+function SpeciesBiasView({ d }: { d: SpeciesBias }) {
+  const rows = [...d.rows].sort((a, b) => Number(b.flag) - Number(a.flag) || b.n_papers - a.n_papers).slice(0, 14);
+  return (
+    <Section header="Who was studied? Species bias by tissue"
+      footer="Share of papers per organism group. Flagged tissues are mostly studied in animals or cells, with under 15% human data, so findings may not transfer to crews.">
+      <div className="row flex-wrap gap-x-3 gap-y-1">
+        {d.groups.map((g) => <span key={g} className="inline-flex items-center gap-1.5 t-cap text-label-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: GROUP_COLOR[g] }} />{g}</span>)}
+      </div>
+      {rows.map((r) => {
+        const total = Object.values(r.counts).reduce((a, b) => a + b, 0) || 1;
+        return (
+          <div key={r.id} className="row block">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="t-sub">{r.label}</span>
+              <span className="flex items-center gap-2 t-cap text-label-2">
+                {r.flag && <span className="text-orange font-semibold">Few human studies</span>}
+                {Math.round(r.human_share * 100)}% human · {r.n_papers}
+              </span>
+            </div>
+            <div className="flex h-2 rounded-full overflow-hidden bg-fill">
+              {d.groups.map((g) => r.counts[g] ? <span key={g} title={`${g}: ${r.counts[g]}`} style={{ width: `${(100 * r.counts[g]) / total}%`, background: GROUP_COLOR[g] }} /> : null)}
+            </div>
+          </div>
+        );
+      })}
+    </Section>
+  );
+}
+
+function DurationView({ d }: { d: DurationGap }) {
+  const rows = [...d.rows].sort((a, b) => b.n_with_duration - a.n_with_duration).slice(0, 14);
+  return (
+    <Section header="How long were the studies? Duration vs. a Mars mission"
+      footer={`Longest reported exposure per tissue against a ~${d.mars_days}-day Mars round trip. ${d.n_with_duration} papers state a duration.`}>
+      <div className="row flex-wrap gap-x-3 gap-y-1 t-cap text-label-2">
+        {d.buckets.map((b) => <span key={b}>{b}: <b className="text-label tabular-nums">{d.overall[b] ?? 0}</b></span>)}
+      </div>
+      {rows.map((r) => {
+        const pct = Math.min(100, (100 * r.max_days) / d.mars_days);
+        return (
+          <div key={r.id} className="row block">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="t-sub">{r.label}</span>
+              <span className="t-cap text-label-2 tabular-nums">longest {Math.round(r.max_days)} d · median {Math.round(r.median_days)} d · {r.n_with_duration} studies</span>
+            </div>
+            <div className="relative h-2 rounded-full bg-fill overflow-hidden">
+              <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--green)" : pct >= 20 ? "var(--orange)" : "var(--red)" }} />
+            </div>
+          </div>
+        );
+      })}
+    </Section>
   );
 }

@@ -15,6 +15,7 @@ export type PaperCard = {
   id: string; title: string; year: string | number; journal?: string; url: string; doi?: string; study_type: string;
   organisms: string[]; stressors: string[]; platforms: string[]; tissues: string[]; osdr_ids: string[];
   full_text: boolean; n_findings: number; key_finding: string; authors: string[]; n_authors: number;
+  sample_size?: number | null; missions?: string[]; duplicate_of?: string | null;
 };
 
 export type Finding = {
@@ -28,15 +29,18 @@ export type PaperDetail = PaperCard & {
   keywords: string[]; abstract: string; duration: { value: number; unit: string; days: number } | null;
   summary: { l1: string; l2: string[]; l3: string; key_finding: string; method: string };
   findings: Finding[]; sections: Record<string, number>; osdr: { id: string; url: string }[];
-  related: PaperCard[]; labels: Record<string, string>; word_count: number;
+  related: PaperCard[]; labels: Record<string, string>; word_count: number; dose?: string | null; limitations?: string[];
 };
 
 export type Passage = {
   chunk_id: string; paper_id: string; title: string; year: number; url: string; section: string; text: string;
-  entities: string[]; study_type: string; score: number; coverage: number;
+  entities: string[]; study_type: string; score: number; coverage: number; side?: string;
 };
 
-export type GNode = { id: string; type: string; label: string; group: string; ontology: string | null; papers: number; flight_papers: number };
+export type GNode = {
+  id: string; type: string; label: string; group: string; ontology: string | null; papers: number; flight_papers: number;
+  pagerank?: number; betweenness?: number; community?: number;
+};
 export type GEdge = {
   id: string; source: string; target: string; relation: string; paper_count: number; majority: Direction | null;
   agreement: number; strength: Strength; directions: Record<string, number>;
@@ -45,7 +49,7 @@ export type GEdge = {
 export type Consensus = {
   id: string; stressor: string; outcome: string; tissue: string | null; n_papers: number; votes: Record<string, number>;
   majority: Direction; agreement: number; status: "consensus" | "contradictory" | "emerging"; strength: Strength; label: string;
-  explanations: string[];
+  explanations: string[]; timeline?: ({ year: number } & Partial<Record<Direction, number>>)[];
   sides?: Record<string, { paper_id: string; title: string; year: number; quote: string; organism: string | null; study_type: string; duration_days: number | null }[]>;
   labels?: Record<string, string | null>;
 };
@@ -58,7 +62,8 @@ export type Hypothesis = {
 export type Stats = {
   papers: number; full_text: number; chunks: number; findings: number; nodes: number; edges: number; contradictions: number;
   consensus: number; osdr_linked: number; llm_papers: number; years: [number, number]; study_types: Record<string, number>;
-  quote_guard: Record<string, number>; llm: boolean;
+  quote_guard: Record<string, number>; llm: boolean; dense?: boolean; communities?: number; duplicates?: number;
+  with_sample_size?: number; with_mission?: number;
   top: Record<string, { id: string; label: string; papers: number }[]>;
   contradictions_preview: Consensus[]; hypotheses_preview: Hypothesis[];
 };
@@ -73,7 +78,7 @@ export type MissionRisk = {
   tier: "high" | "medium" | "low";
   evidence: { strength: Strength; n_papers: number; n_findings: number; n_human: number; n_flight: number; by_stressor: Record<string, number> };
   key_findings: Finding[]; countermeasures: { id: string; label: string; effective: number; ineffective: number; n_papers: number; papers: string[] }[];
-  contradictions: { id: string; label: string }[]; gaps: string[];
+  contradictions: { id: string; label: string }[]; gaps: string[]; readiness?: Readiness;
 };
 
 export type Mission = { profile: MissionProfile; total_dose_msv: number; exposure: Record<string, number>; risks: MissionRisk[]; summary: string };
@@ -88,3 +93,54 @@ export const STUDY_TYPE_LABEL: Record<string, string> = {
 };
 
 export const DIRECTION_LABEL: Record<string, string> = { increase: "Increase", decrease: "Decrease", no_change: "No change", mixed: "Mixed" };
+
+export type Support = { sentence: string; citations: number[]; score: number | null };
+export type Confidence = { score: number; label: "high" | "medium" | "low" | "none"; reasons: string[] };
+export type Filters = { study_type?: string; organism?: string; stressor?: string; tissue?: string; year_min?: number; year_max?: number };
+
+export type Readiness = { level: number; of: number; label: string; checks: { label: string; ok: boolean; detail: string }[] };
+export type Community = { id: number; label: string; size: number; members: string[]; top: string[] };
+export type Central = { id: string; label: string; type: string; papers: number; pagerank: number; betweenness: number; community: number };
+export type PathStep = {
+  edge: string; source: string; target: string; source_label: string; target_label: string; relation: string;
+  paper_count: number; majority: Direction | null; papers: PaperCard[];
+};
+export type EvidencePath = { nodes: { id: string; label: string; type: string }[]; steps: PathStep[]; support: number };
+
+export type Takeaway = { kind: "consensus" | "conflict" | "gap"; consensus_id?: string; text: string };
+export type Takeaways = Record<string, { label: string; n_papers: number; items: Takeaway[] }>;
+export type Topic = {
+  id: string; label: string; takeaways: Takeaway[]; n_papers: number; n_findings: number; consensus: Consensus[];
+  by_year: [number, number][]; papers: PaperCard[];
+};
+
+export type GlossaryTerm = { term: string; definition: string };
+
+/** Build a query string from a filter object, skipping empty values. */
+export function qs(params: Record<string, string | number | undefined | null>) {
+  const s = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== "" && v !== 0) s.set(k, String(v));
+  const out = s.toString();
+  return out ? `?${out}` : "";
+}
+
+/** Trigger a browser download of a string or Blob. */
+export function download(name: string, body: string | Blob, type = "text/plain") {
+  const url = URL.createObjectURL(typeof body === "string" ? new Blob([body], { type }) : body);
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export type SpeciesBias = {
+  groups: string[]; overall: Record<string, number>;
+  rows: { id: string; label: string; n_papers: number; counts: Record<string, number>; human_share: number; flag: boolean }[];
+};
+export type DurationGap = {
+  buckets: string[]; mars_days: number; n_with_duration: number; overall: Record<string, number>;
+  rows: { id: string; label: string; n_with_duration: number; max_days: number; median_days: number; buckets: Record<string, number> }[];
+};
+export type Novelty = {
+  consensus_id: string; paper_id: string; title: string; year: number; direction: Direction; majority: Direction;
+  n_papers: number; quote: string; study_type: string;
+};

@@ -6,6 +6,7 @@ const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
   compress: false, // keep Server-Sent Events from /api/ask unbuffered through the proxy
+  output: "standalone", // minimal server bundle for the Docker image (web/Dockerfile)
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_URL}/api/:path*` }];
   },

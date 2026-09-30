@@ -127,7 +127,7 @@ function Graph() {
           { selector: "node:selected", style: { "border-color": tint, "border-width": 4 } },
           { selector: "edge:selected", style: { opacity: 1, "line-color": tint, "target-arrow-color": tint } },
         ],
-        layout: { name: "fcose", animate: true, animationDuration: 600, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true, fit: true, padding: 40 } as never,
+        layout: { name: "fcose", animate: false, animationDuration: 600, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true, fit: true, padding: 40 } as never,
         wheelSensitivity: 0.25,
         minZoom: 0.2,
         maxZoom: 3,

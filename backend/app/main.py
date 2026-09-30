@@ -1,4 +1,4 @@
-"""Space Biology Knowledge Engine API.
+"""Emberfall — Flame in Freefall API.
 
 Run:  uv run uvicorn app.main:app --reload --port 8000
 """
@@ -27,7 +27,7 @@ from app.retrieval import search as hybrid_search
 from pipeline.paths import KB_DIR, LOG_DIR
 from pipeline.risks import MISSION_PRESETS
 
-app = FastAPI(title="Space Biology Knowledge Engine", version="1.0")
+app = FastAPI(title="Emberfall — Flame in Freefall", version="1.0")
 app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("SBA_CORS", "*").split(","), allow_methods=["*"], allow_headers=["*"])
 
 
@@ -398,7 +398,7 @@ def export_papers(format: Literal["bibtex", "ris", "csv"] = "csv", ids: str = ""
     ps = [kb.paper[i] for i in ids.split(",") if i in kb.paper] if ids else kb.papers
     body = {"bibtex": X.bibtex, "ris": X.ris, "csv": X.papers_csv}[format](ps)
     ext = {"bibtex": "bib", "ris": "ris", "csv": "csv"}[format]
-    return PlainTextResponse(body, headers={"Content-Disposition": f'attachment; filename="space-biology-papers.{ext}"'})
+    return PlainTextResponse(body, headers={"Content-Disposition": f'attachment; filename="emberfall-papers.{ext}"'})
 
 
 @app.get("/api/export/{dataset}")

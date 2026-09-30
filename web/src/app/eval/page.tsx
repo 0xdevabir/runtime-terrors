@@ -25,7 +25,7 @@ const METRICS: { k: string; label: string; help: string }[] = [
   { k: "hit@5", label: "Relevant paper in top 5", help: "Share of answerable questions where a topically relevant publication is among the first five retrieved." },
   { k: "mrr", label: "Mean reciprocal rank", help: "1 / rank of the first relevant paper, averaged. 1.0 means it is always first." },
   { k: "answer_rate", label: "Answers in-domain questions", help: "Answerable questions that were answered instead of refused." },
-  { k: "refusal_accuracy", label: "Refuses off-topic questions", help: "Questions outside space biology that were correctly declined instead of answered." },
+  { k: "refusal_accuracy", label: "Refuses off-topic questions", help: "Questions outside microgravity combustion / fire safety that were correctly declined instead of answered." },
   { k: "citation_validity", label: "Citations point to real sources", help: "Every [n] marker must refer to a passage that was actually retrieved." },
   { k: "faithfulness", label: "Claim support (faithfulness)", help: "Average lexical overlap between each answer sentence and the passage it cites. A proxy: high overlap means the claim is stated in the source." },
   { k: "supported_sentences", label: "Sentences backed by their citation", help: "Share of cited answer sentences whose cited passage covers at least half of their content words." },
@@ -153,3 +153,4 @@ export default function EvalPage() {
     </Page>
   );
 }
+

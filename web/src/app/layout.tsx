@@ -4,9 +4,9 @@ import { PrefsProvider } from "@/components/prefs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Space Biology Knowledge Engine",
-  description: "Explore 600+ NASA space biology publications: ask questions with citations, map evidence, find gaps and brief missions.",
-  appleWebApp: { capable: true, title: "SpaceBio", statusBarStyle: "default" },
+  title: "Emberfall — Flame in Freefall",
+  description: "AI-powered fire safety insights from microgravity combustion data: ask cited questions, map evidence, find gaps and brief missions.",
+  appleWebApp: { capable: true, title: "Emberfall", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -36,3 +36,4 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     </html>
   );
 }
+

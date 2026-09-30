@@ -247,7 +247,7 @@ export function ErrorNote({ error }: { error: unknown }) {
     <Card className="flex items-start gap-3">
       <span className="text-orange"><Icon name="warn" /></span>
       <div>
-        <div className="t-headline">Can&apos;t reach the knowledge engine</div>
+        <div className="t-headline">Can&apos;t reach Emberfall</div>
         <div className="t-foot text-label-2 mt-1">Start the API with <code className="font-mono">make api</code> and reload. ({String(error).slice(0, 120)})</div>
       </div>
     </Card>

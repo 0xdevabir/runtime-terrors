@@ -1,6 +1,6 @@
-# Space Biology Knowledge Engine: Build Plan
+# Emberfall — Flame in Freefall: Build Plan
 
-Working name: **SpaceBio Atlas**. It answers one question well: *what do we actually know about keeping living things healthy in space, how sure are we, and where are the holes?*
+Working name: **Emberfall**. It answers one question well: *what do we actually know about fire in freefall, how sure are we, and where are the holes for spacecraft fire safety?*
 
 > Verify against the official Space Apps challenge page before starting: dataset links, rules on pre-hackathon work, and submission format.
 
@@ -158,7 +158,7 @@ Precomputed per paper: **L1** lay (2 sentences, for the public), **L2** manager 
 ### 5.3 Knowledge graph explorer (differentiator)
 - Nodes: Organism, Stressor, Tissue/System, Outcome, Gene/Pathway, Countermeasure, Mission. Papers are **not** nodes; they sit on edges (keeps the graph readable).
 - Edge example: `Microgravity —[decreases]→ Bone mineral density`, with metadata on organisms, 14 papers, and agreement 86%.
-- Click a node → side panel with its summary, top findings, papers (L1/L2/L3 toggle) and OSDR datasets.
+- Click a node → side panel with its summary, top findings, papers (L1/L2/L3 toggle) and linked datasets.
 - Click an edge → the evidence table: each paper's direction, magnitude, organism, flight vs analog, with the quote.
 - Edge colour = consensus (green agree / amber mixed / red contradicting). Edge width = paper count.
 

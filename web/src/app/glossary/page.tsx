@@ -10,7 +10,7 @@ export default function GlossaryPage() {
   const [q, setQ] = useState("");
   const rows = (data ?? []).filter((t) => !q || `${t.term} ${t.definition}`.toLowerCase().includes(q.toLowerCase()));
   return (
-    <Page title="Glossary" subtitle="Plain-language definitions of the terms used across space biology papers. The Student view links these in answers."
+    <Page title="Glossary" subtitle="Plain-language definitions of combustion and freefall-fire terms. The Student view links these in answers."
       toolbar={<SearchField value={q} onChange={setQ} placeholder="Find a term" />}>
       {error ? <ErrorNote error={error} /> : !data ? <LoadingList rows={8} /> : (
         <div className="group mb-10">
@@ -18,7 +18,7 @@ export default function GlossaryPage() {
             <div key={t.term} id={t.term} className="row block">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="t-headline capitalize">{t.term}</span>
-                <Link href={`/ask?q=${encodeURIComponent(`What is ${t.term} and how does spaceflight affect it?`)}`} className="t-cap text-tint shrink-0">Ask about it</Link>
+                <Link href={`/ask?q=${encodeURIComponent(`What is ${t.term} and how does it matter for freefall fire safety?`)}`} className="t-cap text-tint shrink-0">Ask about it</Link>
               </div>
               <p className="t-sub text-label-2 mt-1">{t.definition}</p>
             </div>

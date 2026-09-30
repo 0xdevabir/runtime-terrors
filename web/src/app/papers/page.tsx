@@ -1,23 +1,11 @@
-"use client";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
-import { Icon } from "@/components/Icon";
-import { Chip, Empty, ErrorNote, LoadingList, Page, Row, SearchField, Segmented, StudyTag, Tag } from "@/components/ui";
-import { API, api, PaperCard } from "@/lib/api";
-import { useBookmarks } from "@/lib/bookmarks";
-import { useEntities } from "@/lib/entities";
-
-const TYPES = [
-  { v: "", l: "All" }, { v: "flight,both", l: "Spaceflight" }, { v: "ground_analog", l: "Ground analog" },
-  { v: "ground", l: "Ground lab" }, { v: "review", l: "Reviews" },
-];
-const PAGE = 40;
-
+page.tsx 149L cognitive
+// /Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/papers/page.tsx
+§ function PapersPage (L17-L19)
 export default function PapersPage() {
   return <Suspense><Papers /></Suspense>;
 }
-
+// ... 1 lines omitted
+§ function Papers (L21-L37)
 function Papers() {
   const sp = useSearchParams();
   const [q, setQ] = useState(sp.get("q") ?? "");
@@ -35,6 +23,7 @@ function Papers() {
   const [error, setError] = useState<unknown>(null);
   const { entities, label } = useEntities();
 
+§ function function (L38-L46)
   const qs = (offset: number) => {
     const p = new URLSearchParams({ sort, offset: String(offset), limit: String(PAGE) });
     if (applied) p.set("q", applied);
@@ -44,19 +33,18 @@ function Papers() {
     Object.entries(facet).forEach(([k, v]) => v && p.set(k, v));
     return p.toString();
   };
-
-  useEffect(() => {
-    setItems(null); setError(null);
-    api<{ total: number; items: PaperCard[] }>(`/papers?${qs(0)}`).then((r) => { setItems(r.items); setTotal(r.total); }).catch(setError);
-  }, [applied, type, osdr, sort, facet, onlySaved, onlySaved && saved.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
-
+// ... 6 lines omitted
+§ function function (L53-L53)
   const more = () => api<{ total: number; items: PaperCard[] }>(`/papers?${qs(items!.length)}`).then((r) => setItems((x) => [...(x ?? []), ...r.items]));
+§ function function (L54-L54)
   const top = (t: string) => entities.filter((e) => e.type === t && e.papers > 0).sort((a, b) => b.papers - a.papers).slice(0, 10);
+§ function function (L55-L55)
   const setF = (k: "organism" | "stressor" | "tissue", v?: string) => setFacet((f) => ({ ...f, [k]: f[k] === v ? undefined : v }));
+§ block block (L56-L149)
   const active = Object.entries(facet).filter(([, v]) => v) as ["organism" | "stressor" | "tissue", string][];
 
   return (
-    <Page title="Publications" subtitle="Every paper in the NASA space biology corpus, searchable by meaning and filterable by what was studied."
+    <Page title="Publications" subtitle="Every paper in the microgravity combustion and fire-safety corpus, searchable by meaning and filterable by what was studied."
       trailing={<a href={`${API}/api/export/papers?format=csv`} className="t-sub text-tint" title="Download all papers as CSV">Export CSV</a>}
       toolbar={
         <div className="space-y-3">
@@ -147,3 +135,5 @@ function Papers() {
     </Page>
   );
 }
+7/9 chunks shown (2134 tokens)
+[lean-ctx] full source: read "/Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/papers/page.tsx" directly (no MCP)  ·  or ctx_read("/Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/papers/page.tsx", mode="full")

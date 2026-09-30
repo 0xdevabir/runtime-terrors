@@ -75,7 +75,7 @@ async def main() -> None:
     rows = read_list()
     sem = asyncio.Semaphore(CONCURRENCY)
     stats: dict[str, int] = {}
-    async with httpx.AsyncClient(timeout=60, headers={"User-Agent": "SpaceBioAtlas/0.1 (NASA Space Apps)"}) as client:
+    async with httpx.AsyncClient(timeout=60, headers={"User-Agent": "Emberfall/0.1 (NASA Space Apps; Flame in Freefall)"}) as client:
         tasks = [fetch_one(client, sem, r) for r in rows]
         for i, coro in enumerate(asyncio.as_completed(tasks), 1):
             s = await coro

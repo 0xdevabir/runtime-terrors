@@ -1,5 +1,5 @@
 # API image. Build from the repo root so the prebuilt knowledge base is included:
-#   docker build -f backend/Dockerfile -t spacebio-api .
+#   docker build -f backend/Dockerfile -t emberfall-api .
 FROM python:3.12-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /srv/backend

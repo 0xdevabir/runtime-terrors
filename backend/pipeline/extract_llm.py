@@ -84,7 +84,7 @@ SCHEMA = {
     },
 }
 
-SYSTEM = """You are a space-biology curator building a knowledge graph for NASA mission planners and scientists.
+SYSTEM = """You are a microgravity combustion / fire-safety curator building a knowledge graph for NASA safety planners and scientists.
 Extract structured facts from ONE paper. Rules:
 - Only record findings this paper itself measured. Ignore background claims attributed to other studies.
 - `evidence_quote` must be copied VERBATIM (exact characters) from the paper text - one sentence, no paraphrase.

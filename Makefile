@@ -1,4 +1,4 @@
-# Space Biology Knowledge Engine — common tasks. Run `make help`.
+# Emberfall — Flame in Freefall — common tasks. Run `make help`.
 # pass backend/.env to uv when present (ANTHROPIC_API_KEY etc.)
 RUN = uv run $$( [ -f .env ] && echo --env-file .env )
 
@@ -51,7 +51,7 @@ dev: ## Run API and web together
 	$(MAKE) -j2 api web
 
 docker: ## Build the API image (bundles data/kb)
-	docker build -f backend/Dockerfile -t spacebio-api .
+	docker build -f backend/Dockerfile -t emberfall-api .
 
 up: ## Run the whole stack in Docker (API :8000, web :3000)
 	docker compose up --build

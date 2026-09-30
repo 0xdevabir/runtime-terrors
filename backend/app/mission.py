@@ -1,4 +1,4 @@
-"""Mission briefing: rank biological risks for a mission profile and attach the evidence."""
+"""Mission briefing: rank fire-safety risks for a mission profile and attach the evidence."""
 from __future__ import annotations
 
 from app.kb import KB
@@ -52,7 +52,7 @@ def narrative(profile: dict, risks: list[dict]) -> str:
     top = [r for r in risks if r["tier"] == "high"][:3] or risks[:2]
     thin = [r for r in risks if r["relevance"] >= 0.3 and r["evidence"]["n_human"] < 3]
     s = (f"For a {profile.get('duration_days')}-day {profile.get('destination', '')} mission "
-         f"(~{total_dose(profile)} mSv total dose), the highest-priority biological risks are "
+         f"(~{total_dose(profile)} mSv total dose), the highest-priority fire-safety risks are "
          + ", ".join(r["name"].lower() for r in top) + ". ")
     if thin:
         s += ("Evidence for " + ", ".join(r["name"].lower() for r in thin[:3])

@@ -1,55 +1,6 @@
-"use client";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { AnswerText } from "@/components/Answer";
-import { VoteBar } from "@/components/charts";
-import { Icon } from "@/components/Icon";
-import { PERSONAS, usePrefs } from "@/components/prefs";
-import { Chip, DirectionGlyph, Quote, Segmented, Sheet, StrengthBadge, StudyTag, Tag } from "@/components/ui";
-import { API, api, Confidence, Filters, Finding, Passage, qs, Strength, Support } from "@/lib/api";
-import { TYPE_META, useEntities } from "@/lib/entities";
-
-type Panel = { consensus: { id: string; status: string; majority: string; agreement: number; n_papers: number; votes: Record<string, number>; strength: Strength; label: string }[]; risks: string[] };
-type Turn = {
-  id: number; q: string; persona: string; text: string; status: "retrieving" | "streaming" | "done" | "error";
-  passages: Passage[]; entities: string[]; lit: string[]; findings: Finding[]; panel?: Panel;
-  mode?: string; refused?: boolean; citations?: number[]; invalid?: number[]; citedPapers?: string[];
-  support?: Support[]; confidence?: Confidence; disclaimer?: string; retrievalQuery?: string; sides?: string[] | null;
-  latency?: number; filters: Filters;
-};
-
-const SCOPE = [
-  { value: "", label: "All studies" },
-  { value: "flight,both", label: "Spaceflight" },
-  { value: "ground_analog,ground", label: "Ground" },
-];
-
-const HIST_CHARS = 1200; // per earlier answer sent back as follow-up context
-
-export default function AskPage() {
-  return <Suspense><Ask /></Suspense>;
-}
-
-function Ask() {
-  const params = useSearchParams();
-  const { persona, setPersona } = usePrefs();
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [input, setInput] = useState("");
-  const [filters, setFilters] = useState<Filters>({});
-  const [showFilters, setShowFilters] = useState(false);
-  const scope = filters.study_type ?? "";
-  const setScope = (v: string) => setFilters((f) => ({ ...f, study_type: v || undefined }));
-  const nFilters = [filters.organism, filters.stressor, filters.tissue, filters.year_min, filters.year_max].filter(Boolean).length;
-  const [source, setSource] = useState<{ turn: Turn; n: number } | null>(null);
-  const started = useRef(false);
-  const bottom = useRef<HTMLDivElement>(null);
-  const esRef = useRef<EventSource | null>(null);
-  const turnsRef = useRef<Turn[]>([]);
-  useEffect(() => { turnsRef.current = turns; }, [turns]);
-
-  const update = (id: number, patch: Partial<Turn> | ((t: Turn) => Partial<Turn>)) =>
-    setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, ...(typeof patch === "function" ? patch(t) : patch) } : t)));
+page.tsx 468L cognitive
+// /Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/ask/page.tsx
+§ block block (L53-L151)
 
   const ask = useCallback((q: string, f: Filters = filters) => {
     q = q.trim();
@@ -131,7 +82,7 @@ function Ask() {
           {showFilters && <FilterPanel value={filters} onChange={setFilters} />}
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }}
             className="flex items-end gap-2 bg-bg-2 rounded-[22px] pl-4 pr-1.5 py-1.5 shadow-[var(--shadow)] border border-sep">
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1} placeholder="Ask a question about space biology"
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1} placeholder="Ask a question about freefall fire safety"
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } }}
               className="flex-1 bg-transparent outline-none resize-none t-body py-1.5 max-h-32 placeholder:text-label-2" />
             <button type="submit" disabled={busy || input.trim().length < 3} aria-label="Send"
@@ -149,14 +100,15 @@ function Ask() {
   );
 }
 
+§ function Intro (L152-L179)
 function Intro({ onAsk }: { onAsk: (q: string) => void }) {
   const ex = [
-    "What happens to muscle mass in rodents during spaceflight?",
-    "How does microgravity change plant root growth?",
-    "Does spaceflight impair wound healing?",
-    "What are the effects of space radiation on the heart?",
-    "Do bisphosphonates prevent bone loss in space?",
-    "How does the gut microbiome change in astronauts?",
+    "How does flame spread change in microgravity?",
+    "What happens to soot formation at reduced gravity?",
+    "Does elevated oxygen accelerate material flammability in freefall?",
+    "How do radiative extinctions differ between 1g and µg flames?",
+    "What materials are safest for spacecraft cabin interiors?",
+    "How should a crew suppress a fire on the ISS?",
   ];
   return (
     <div className="pt-10 pb-6 text-center">
@@ -165,7 +117,7 @@ function Intro({ onAsk }: { onAsk: (q: string) => void }) {
       </div>
       <h1 className="t-title1">Ask the literature</h1>
       <p className="t-sub text-label-2 mt-2 max-w-[520px] mx-auto">
-        Every answer is grounded in retrieved passages from NASA space biology publications. Tap a citation to read the exact source.
+        Every answer is grounded in retrieved passages from NASA microgravity combustion and fire-safety publications. Tap a citation to read the exact source.
       </p>
       <div className="grid sm:grid-cols-2 gap-2 mt-8 text-left">
         {ex.map((q) => (
@@ -177,7 +129,8 @@ function Intro({ onAsk }: { onAsk: (q: string) => void }) {
     </div>
   );
 }
-
+// ... 1 lines omitted
+§ function TurnView (L181-L322)
 function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number) => void; onAsk: (q: string) => void; followUp: boolean }) {
   const { label } = useEntities();
   const [showFindings, setShowFindings] = useState(false);
@@ -206,7 +159,7 @@ function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number)
         )}
 
         {t.status === "retrieving" && <div className="space-y-2"><div className="skeleton h-4 w-[90%]" /><div className="skeleton h-4 w-[75%]" /><div className="skeleton h-4 w-[60%]" /></div>}
-        {t.status === "error" && <p className="t-sub text-label-2">Couldn&apos;t reach the knowledge engine. Check that the API is running and try again.</p>}
+        {t.status === "error" && <p className="t-sub text-label-2">Couldn&apos;t reach Emberfall. Check that the API is running and try again.</p>}
         {t.text && (
           <div className={t.refused ? "flex gap-2 items-start" : ""}>
             {t.refused && <span className="text-orange mt-0.5"><Icon name="info" size={20} /></span>}
@@ -320,7 +273,8 @@ function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number)
     </article>
   );
 }
-
+// ... 1 lines omitted
+§ function FollowUps (L324-L341)
 function FollowUps({ entities, onAsk }: { entities: string[]; onAsk: (q: string) => void }) {
   const { label } = useEntities();
   const e = entities.map((x) => ({ id: x, type: x.split(":")[0], l: label(x).toLowerCase() }));
@@ -339,7 +293,8 @@ function FollowUps({ entities, onAsk }: { entities: string[]; onAsk: (q: string)
     </div>
   );
 }
-
+// ... 1 lines omitted
+§ function SourceDetail (L343-L368)
 function SourceDetail({ p }: { p?: Passage }) {
   const { label } = useEntities();
   if (!p) return null;
@@ -366,9 +321,8 @@ function SourceDetail({ p }: { p?: Passage }) {
     </div>
   );
 }
-
-const CONF_TONE = { high: "green", medium: "orange", low: "red", none: "gray" } as const;
-
+// ... 3 lines omitted
+§ function ConfidenceBox (L372-L409)
 function ConfidenceBox({ c, support, open, onToggle, onCite }: {
   c: Confidence; support: Support[]; open: boolean; onToggle: () => void; onCite: (n: number) => void;
 }) {
@@ -407,62 +361,12 @@ function ConfidenceBox({ c, support, open, onToggle, onCite }: {
     </div>
   );
 }
-
-function ActionBar({ t }: { t: Turn }) {
-  const [rated, setRated] = useState<"up" | "down" | null>(null);
-  const [copied, setCopied] = useState("");
+// ... 4 lines omitted
+§ function function (L414-L418)
   const rate = (rating: "up" | "down") => {
     setRated(rating);
     api("/feedback", { method: "POST", body: JSON.stringify({ q: t.q, rating, persona: t.persona, mode: t.mode ?? "",
       citations: t.citations ?? [], cited_papers: t.citedPapers ?? [] }) }).catch(() => setRated(null));
   };
-  const copy = async (what: "link" | "answer") => {
-    const text = what === "link" ? `${location.origin}/ask${qs({ q: t.q, ...t.filters })}`
-      : `Q: ${t.q}\n\n${t.text}\n\nSources:\n${t.passages.map((p, i) => `[${i + 1}] ${p.title} (${p.year}) ${p.url}`).join("\n")}`;
-    try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(""), 1500); } catch {}
-  };
-  const btn = "inline-flex items-center gap-1 h-7 px-2 rounded-full t-cap btn-press hover:bg-fill";
-  return (
-    <div className="mt-3">
-      <div className="flex flex-wrap items-center gap-1 text-label-2">
-        <button className={`${btn} ${rated === "up" ? "text-green" : ""}`} onClick={() => rate("up")} disabled={!!rated} aria-label="Helpful">
-          <Icon name="check" size={14} stroke={2.4} />{rated === "up" ? "Thanks" : "Helpful"}
-        </button>
-        <button className={`${btn} ${rated === "down" ? "text-red" : ""}`} onClick={() => rate("down")} disabled={!!rated} aria-label="Not helpful">
-          <Icon name="xmark" size={14} stroke={2.4} />{rated === "down" ? "Noted" : "Wrong or unhelpful"}
-        </button>
-        <button className={btn} onClick={() => copy("link")}><Icon name="link" size={14} />{copied === "link" ? "Link copied" : "Share link"}</button>
-        <button className={btn} onClick={() => copy("answer")}><Icon name="doc" size={14} />{copied === "answer" ? "Copied" : "Copy with sources"}</button>
-        {t.latency != null && <span className="t-cap2 ml-auto">{(t.latency / 1000).toFixed(1)} s</span>}
-      </div>
-      {t.disclaimer && <p className="t-cap2 text-label-3 mt-2">{t.disclaimer}</p>}
-    </div>
-  );
-}
-
-const YEARS = Array.from({ length: 2026 - 1990 + 1 }, (_, i) => 2026 - i);
-
-function FilterPanel({ value, onChange }: { value: Filters; onChange: (f: Filters) => void }) {
-  const { entities } = useEntities();
-  const set = (k: keyof Filters, v: string) => onChange({ ...value, [k]: k.startsWith("year") ? (v ? +v : undefined) : v || undefined });
-  const opts = (type: string) => entities.filter((e) => e.type === type && e.papers > 0).sort((a, b) => b.papers - a.papers);
-  const sel = "h-8 rounded-lg bg-bg-2 border border-sep px-2 t-foot min-w-0";
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2 p-2 rounded-xl bg-bg-2 border border-sep">
-      {(["organism", "stressor", "tissue"] as const).map((k) => (
-        <select key={k} aria-label={k} className={sel} value={value[k] ?? ""} onChange={(e) => set(k, e.target.value)}>
-          <option value="">Any {TYPE_META[k].label.toLowerCase()}</option>
-          {opts(k).map((e) => <option key={e.id} value={e.id}>{e.label} ({e.papers})</option>)}
-        </select>
-      ))}
-      <select aria-label="From year" className={sel} value={value.year_min ?? ""} onChange={(e) => set("year_min", e.target.value)}>
-        <option value="">From any year</option>
-        {YEARS.map((y) => <option key={y} value={y}>From {y}</option>)}
-      </select>
-      <select aria-label="To year" className={sel} value={value.year_max ?? ""} onChange={(e) => set("year_max", e.target.value)}>
-        <option value="">To any year</option>
-        {YEARS.map((y) => <option key={y} value={y}>To {y}</option>)}
-      </select>
-    </div>
-  );
-}
+7/24 chunks shown (5483 tokens)
+[lean-ctx] full source: read "/Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/ask/page.tsx" directly (no MCP)  ·  or ctx_read("/Users/mdabirhossain/Documents/WebDevelopment/runtime-terror/web/src/app/ask/page.tsx", mode="full")

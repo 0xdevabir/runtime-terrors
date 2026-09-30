@@ -6,8 +6,8 @@ export type Theme = "system" | "light" | "dark";
 
 export const PERSONAS: { id: Persona; label: string; short: string; icon: "flask" | "chart" | "rocket" | "books"; blurb: string }[] = [
   { id: "scientist", label: "Scientist", short: "Scientist", icon: "flask", blurb: "Mechanisms, methods and where studies disagree" },
-  { id: "manager", label: "Program Manager", short: "Manager", icon: "chart", blurb: "Bottom lines, evidence strength, investment gaps" },
-  { id: "architect", label: "Mission Architect", short: "Architect", icon: "rocket", blurb: "Crew-health risk and countermeasures for Moon & Mars" },
+  { id: "manager", label: "Safety Manager", short: "Manager", icon: "chart", blurb: "Bottom lines, evidence strength, fire-safety investment gaps" },
+  { id: "architect", label: "Habitat Architect", short: "Architect", icon: "rocket", blurb: "Spacecraft fire risk, materials and countermeasures for Moon & Mars" },
   { id: "student", label: "Student", short: "Student", icon: "books", blurb: "Plain language, key terms explained" },
 ];
 

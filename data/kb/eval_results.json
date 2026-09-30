@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-30 17:03",
+ "generated_at": "2026-09-30 17:19",
  "mode": "extractive",
  "dense_retrieval": true,
  "n_questions": 40,
@@ -16,7 +16,7 @@
   "refusal_accuracy": 1.0,
   "citation_validity": 1.0,
   "quote_guard": 1.0,
-  "latency_p50_s": 0.022,
+  "latency_p50_s": 0.02,
   "faithfulness": 1.0,
   "supported_sentences": 1.0,
   "mean_confidence": 0.991
@@ -52,7 +52,7 @@
   {
    "q": "How does spaceflight affect bone density and bone loss in mice?",
    "refused": false,
-   "latency_s": 0.536,
+   "latency_s": 0.459,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -76,7 +76,7 @@
   {
    "q": "What happens to skeletal muscle mass during spaceflight or hindlimb unloading?",
    "refused": false,
-   "latency_s": 0.04,
+   "latency_s": 0.016,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -100,7 +100,7 @@
   {
    "q": "How do Arabidopsis roots grow and orient in microgravity?",
    "refused": false,
-   "latency_s": 0.028,
+   "latency_s": 0.015,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -124,7 +124,7 @@
   {
    "q": "Which genes change expression in Arabidopsis seedlings grown on the ISS?",
    "refused": false,
-   "latency_s": 0.027,
+   "latency_s": 0.023,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -148,7 +148,7 @@
   {
    "q": "Does space radiation damage the central nervous system or cognition?",
    "refused": false,
-   "latency_s": 0.026,
+   "latency_s": 0.025,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -172,7 +172,7 @@
   {
    "q": "What are the effects of heavy ion radiation on the heart and cardiovascular system?",
    "refused": false,
-   "latency_s": 0.026,
+   "latency_s": 0.021,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -196,7 +196,7 @@
   {
    "q": "How does spaceflight change the immune system of astronauts or mice?",
    "refused": false,
-   "latency_s": 0.054,
+   "latency_s": 0.02,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -220,7 +220,7 @@
   {
    "q": "Does microgravity increase bacterial virulence or antibiotic resistance?",
    "refused": false,
-   "latency_s": 0.026,
+   "latency_s": 0.022,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -244,7 +244,7 @@
   {
    "q": "How does spaceflight affect the eye and retina?",
    "refused": false,
-   "latency_s": 0.022,
+   "latency_s": 0.017,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -268,7 +268,7 @@
   {
    "q": "What happens to the liver of mice flown in space?",
    "refused": false,
-   "latency_s": 0.021,
+   "latency_s": 0.023,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -292,7 +292,7 @@
   {
    "q": "How does spaceflight affect Drosophila fruit flies?",
    "refused": false,
-   "latency_s": 0.022,
+   "latency_s": 0.017,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 0.94,
@@ -316,7 +316,7 @@
   {
    "q": "What was learned about C. elegans in spaceflight?",
    "refused": false,
-   "latency_s": 0.021,
+   "latency_s": 0.02,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 0.89,
@@ -340,7 +340,7 @@
   {
    "q": "How does spaceflight affect the gut microbiome?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.019,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -364,7 +364,7 @@
   {
    "q": "What are the effects of microgravity on stem cells?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.018,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -388,7 +388,7 @@
   {
    "q": "Does simulated microgravity affect osteoblast or osteoclast activity?",
    "refused": false,
-   "latency_s": 0.027,
+   "latency_s": 0.024,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -412,7 +412,7 @@
   {
    "q": "What did the NASA Twins Study find?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.017,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -436,7 +436,7 @@
   {
    "q": "How does spaceflight affect mitochondria and oxidative stress?",
    "refused": false,
-   "latency_s": 0.024,
+   "latency_s": 0.02,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 0.96,
@@ -460,7 +460,7 @@
   {
    "q": "What happens to the skin during spaceflight?",
    "refused": false,
-   "latency_s": 0.022,
+   "latency_s": 0.021,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -484,7 +484,7 @@
   {
    "q": "Does spaceflight affect reproduction or the testes and ovaries?",
    "refused": false,
-   "latency_s": 0.023,
+   "latency_s": 0.022,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -508,7 +508,7 @@
   {
    "q": "How does microgravity affect plant cell walls and gravity sensing?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.022,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -556,7 +556,7 @@
   {
    "q": "Can exercise or other countermeasures prevent bone loss in space?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.021,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -652,7 +652,7 @@
   {
    "q": "What changes occur in the brain of mice after spaceflight?",
    "refused": false,
-   "latency_s": 0.02,
+   "latency_s": 0.023,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -676,7 +676,7 @@
   {
    "q": "How does low dose radiation affect DNA damage and repair?",
    "refused": false,
-   "latency_s": 0.019,
+   "latency_s": 0.02,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -700,7 +700,7 @@
   {
    "q": "What omics datasets from GeneLab describe spaceflight effects?",
    "refused": false,
-   "latency_s": 0.019,
+   "latency_s": 0.022,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -724,7 +724,7 @@
   {
    "q": "How is plant growth in space affected by light and the growth chamber?",
    "refused": false,
-   "latency_s": 0.024,
+   "latency_s": 0.022,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 0.96,
@@ -748,7 +748,7 @@
   {
    "q": "Does partial gravity like on the Moon or Mars protect muscle and bone?",
    "refused": false,
-   "latency_s": 0.026,
+   "latency_s": 0.025,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -772,7 +772,7 @@
   {
    "q": "What is the effect of spaceflight on the thymus or T cell function?",
    "refused": false,
-   "latency_s": 0.024,
+   "latency_s": 0.019,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -796,7 +796,7 @@
   {
    "q": "How does spaceflight affect wound healing?",
    "refused": false,
-   "latency_s": 0.023,
+   "latency_s": 0.018,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -820,7 +820,7 @@
   {
    "q": "What happens to blood vessels and endothelial cells in microgravity?",
    "refused": false,
-   "latency_s": 0.027,
+   "latency_s": 0.024,
    "support": 1.0,
    "supported_share": 1.0,
    "confidence": 1.0,
@@ -868,7 +868,7 @@
   {
    "q": "What is the best recipe for chocolate chip cookies?",
    "refused": true,
-   "latency_s": 0.059,
+   "latency_s": 0.017,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,
@@ -881,7 +881,7 @@
   {
    "q": "Who won the football world cup in 2018?",
    "refused": true,
-   "latency_s": 0.02,
+   "latency_s": 0.017,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,
@@ -894,7 +894,7 @@
   {
    "q": "What is the current stock price of Tesla?",
    "refused": true,
-   "latency_s": 0.02,
+   "latency_s": 0.015,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,
@@ -907,7 +907,7 @@
   {
    "q": "How do I configure a Kubernetes ingress controller?",
    "refused": true,
-   "latency_s": 0.019,
+   "latency_s": 0.017,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,
@@ -920,7 +920,7 @@
   {
    "q": "What is the capital city of Australia?",
    "refused": true,
-   "latency_s": 0.017,
+   "latency_s": 0.013,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,
@@ -933,7 +933,7 @@
   {
    "q": "Explain the rules of chess castling.",
    "refused": true,
-   "latency_s": 0.018,
+   "latency_s": 0.016,
    "support": null,
    "supported_share": null,
    "confidence": 0.0,

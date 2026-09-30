@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve the Space Biology Knowledge Engine.
+Thanks for helping improve Emberfall (Flame in Freefall).
 
 ## Setup
 

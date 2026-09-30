@@ -49,8 +49,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2.5">
             <Logo />
             <div>
-              <div className="t-headline leading-tight">Space Biology</div>
-              <div className="t-foot text-label-2">Knowledge Engine</div>
+              <div className="t-headline leading-tight">Emberfall</div>
+              <div className="t-foot text-label-2">Flame in Freefall</div>
             </div>
           </div>
         </div>
@@ -123,3 +123,4 @@ export function Logo({ size = 34 }: { size?: number }) {
     </span>
   );
 }
+

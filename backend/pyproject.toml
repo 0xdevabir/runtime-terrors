@@ -1,7 +1,7 @@
 [project]
-name = "spacebio-atlas"
+name = "emberfall"
 version = "0.1.0"
-description = "Space Biology Knowledge Engine - pipeline + API"
+description = "Emberfall — Flame in Freefall: fire safety insights from microgravity combustion data"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi>=0.115",
@@ -29,3 +29,4 @@ dev = ["pytest>=8"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+

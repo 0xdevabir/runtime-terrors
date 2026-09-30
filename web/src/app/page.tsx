@@ -11,28 +11,28 @@ import { useApi } from "@/lib/useApi";
 
 const SUGGESTED: Record<string, string[]> = {
   scientist: [
-    "How does spaceflight affect bone density in mice?",
-    "What gene expression changes occur in Arabidopsis roots in microgravity?",
-    "Does simulated microgravity increase bacterial virulence?",
-    "How does space radiation damage the central nervous system?",
+    "How does flame spread change in microgravity?",
+    "What happens to soot formation at reduced gravity?",
+    "Does elevated oxygen accelerate material flammability in freefall?",
+    "How do radiative extinctions differ between 1g and µg flames?",
   ],
   manager: [
-    "Where is the evidence on muscle atrophy countermeasures weakest?",
-    "What do we know about immune dysregulation during spaceflight?",
-    "Which spaceflight effects on the heart are well established?",
-    "How strong is the evidence on radiation and cancer risk?",
+    "Where is the evidence on spacecraft fire detection weakest?",
+    "What do we know about material flammability limits in cabin atmospheres?",
+    "Which microgravity combustion effects are well established?",
+    "How strong is the evidence on oxygen concentration and flame spread?",
   ],
   architect: [
-    "What countermeasures protect bone during long-duration missions?",
-    "What are the risks of space radiation for a Mars mission crew?",
-    "How does partial gravity affect the musculoskeletal system?",
-    "Can crops be grown reliably in spaceflight conditions?",
+    "What countermeasures reduce fire risk on long-duration missions?",
+    "What are the fire risks for a Mars habitat atmosphere?",
+    "How does partial gravity affect flame behavior compared to ISS?",
+    "Which materials are safest for spacecraft interiors?",
   ],
   student: [
-    "What happens to astronauts' bones in space?",
-    "Why do muscles get weaker in microgravity?",
-    "Can plants grow on the Moon or Mars?",
-    "Is space radiation dangerous for the brain?",
+    "Why do flames look different in space?",
+    "Can a fire start on the ISS?",
+    "What is microgravity combustion?",
+    "How do astronauts put out a fire in freefall?",
   ],
 };
 
@@ -45,12 +45,12 @@ export default function Home() {
   const p = PERSONAS.find((x) => x.id === persona)!;
 
   return (
-    <Page title="Space Biology" subtitle={<>A knowledge engine over {s ? s.papers : "600+"} NASA-funded space biology publications — ask, explore, and see where the evidence is strong, conflicting, or missing.</>}>
+    <Page title="Emberfall" subtitle={<>AI-powered fire safety insights from microgravity combustion data — ask, explore, and see where the evidence is strong, conflicting, or missing across {s ? s.papers : "NASA"} publications.</>}>
       {/* Ask bar */}
       <form onSubmit={(e) => { e.preventDefault(); go(q); }}
         className="flex items-center gap-2 bg-bg-2 rounded-2xl pl-4 pr-2 h-14 shadow-[var(--shadow)] mb-3">
         <span className="text-indigo"><Icon name="sparkles" size={22} /></span>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about spaceflight biology…"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about freefall fire safety…"
           className="flex-1 bg-transparent outline-none t-body placeholder:text-label-2 min-w-0" />
         <button type="submit" disabled={!q.trim()} aria-label="Ask"
           className="grid place-items-center w-10 h-10 rounded-full bg-tint text-white disabled:opacity-30 btn-press">
@@ -80,7 +80,7 @@ export default function Home() {
             <Stat icon="books" value={s.papers} label={`publications · ${s.full_text} full text`} color="var(--orange)" />
             <Stat icon="quote" value={s.findings.toLocaleString()} label="evidence-quoted findings" color="var(--indigo)" />
             <Stat icon="split" value={s.contradictions} label="open contradictions" color="var(--red)" />
-            <Stat icon="database" value={s.osdr_linked} label="linked to OSDR datasets" color="var(--teal)" />
+            <Stat icon="database" value={s.osdr_linked} label="linked to flight datasets" color="var(--teal)" />
           </>
         ) : Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-bg-2 rounded-2xl p-4 space-y-3"><Skeleton h={22} w={22} /><Skeleton h={28} w="50%" /><Skeleton h={12} /></div>)}
       </div>
@@ -140,3 +140,4 @@ export default function Home() {
     </Page>
   );
 }
+

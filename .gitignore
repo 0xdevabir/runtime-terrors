@@ -31,3 +31,6 @@ data/kb/emb_parts/
 
 # runtime logs (audit trail, feedback, request log)
 data/logs/
+
+# Processed NTRS full text is large and reproducible (`python -m pipeline.ntrs text`); papers.csv stays tracked.
+data/processed/text/

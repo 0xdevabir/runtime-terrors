@@ -23,6 +23,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
+import numpy as np
+
 from app.kb import KB
 from app.glossary import terms_in
 from app.retrieval import STOP, coverage, query_terms, search
@@ -147,24 +149,73 @@ def should_refuse(q: str, passages: list[dict], entities: list[str]) -> bool:
 
 
 # ----------------------------------------------------------------- extractive
+NOT_A_FINDING = re.compile(r"\?\s*$|^\s*(?:fig(?:ure)?|table|photo|plate)\b|\b(?:fig(?:ure)?s?\.?\s*(?:\d+|[IVX]+\b)|tables?\s*\d+|et al|"
+                           r"acknowledg|grant (?:no|number)|copyright|all rights reserved|https?://|doi:|"
+                           r"presented (?:by|at)|proceedings|\bpp\.\s*\d|\bvol\.\s*\d|\bAIAA[- ]?\d{2})", re.I)
+REFERENCE = re.compile(r"\b[A-Z]\.,? (?:and|&) [A-Z][a-z]+|\b[A-Z][a-z]+, [A-Z]\.(?: ?[A-Z]\.)?,|\"[^\"]{10,}\s?\"")  # bibliography entries
+FINDING_CUE = re.compile(r"\b(?:result|show|found|find|reveal|demonstrat|indicat|suggest|observ|measur|increas|decreas|reduc|"
+                         r"extinguish|because|due to|depend|leads? to|caus|whereas|than)\w*", re.I)
+# motivation / programme / scope sentences: true, but they don't answer anything
+BACKGROUND = re.compile(r"\b(?:this (?:paper|report|study|work|project|program|investigation|research|experiment|effort)|"
+                        r"the (?:present|current|proposed|planned) (?:study|work|paper|research|experiment|investigation)|"
+                        r"we (?:describe|present|propose|plan|will|discuss)|(?:is|are) being (?:studied|conducted|developed|investigated)|"
+                        r"(?:was|were|is|are) (?:studied|investigated|examined|presented|described|discussed)\b|will be|objectives?|purpose|"
+                        r"goals?\b|aim(?:s|ed)? (?:of|to|at)|in the world|practical applications?|much of the energy|major portion|"
+                        r"area of study|this area|future work|remains? (?:unknown|unclear)|is (?:not )?well understood)", re.I)
+# how the study was done rather than what it found
+METHOD = re.compile(r"\b(?:(?:was|were|been) (?:conducted|performed|carried out|burned|tested|selected|chosen|used|employed|obtained|"
+                    r"designed|developed|built|extended|summari[sz]ed)|test fuels|we (?:have|had|used|use)|in an effort to|"
+                    r"(?:has|have) been the subject|summari[sz]ed here|facilit(?:y|ies) offers?|offers? a unique)\b", re.I)
+DANGLING = re.compile(r"(?:This|These|Those|Thus|Hence|However|Therefore|It|They|Building upon|In addition|Also|Furthermore)\b")
+
+
+def sentence_similarity(kb: KB, q: str, sents: list[str]) -> list[float]:
+    """Cosine similarity of each sentence to the question with the retrieval embedder (0s when it is unavailable)."""
+    emb = kb.embedder
+    if emb is None:
+        return [0.0] * len(sents)
+    try:
+        qv = np.asarray(list(emb.query_embed([q]))[0], dtype=np.float32)
+        sv = np.asarray(list(emb.passage_embed(sents)), dtype=np.float32)
+        qv /= np.linalg.norm(qv)
+        sv /= np.linalg.norm(sv, axis=1, keepdims=True)
+        return (sv @ qv).tolist()
+    except Exception:
+        return [0.0] * len(sents)
+
+
 def extractive_answer(kb: KB, q: str, persona: str, passages: list[dict], entities: list[str]) -> str:
     terms = query_terms(q)
     ents = set(entities)
     q_cond = [e for e in ents if e.startswith("condition:")]
-    cands = []
+    raw = []
     for n, p in enumerate(passages, 1):
-        for s in SENT_SPLIT.split(p["text"]):
-            if len(s) < 60 or len(s) > 420 or re.search(r"\b(?:fig(?:ure)?\.?\s?\d|table\s?\d|et al)\b", s, re.I) \
-                    or len(RUN_ON.findall(s)) >= 3:  # run-together highlight bullets, not a sentence
-                continue
-            ent_hits = sum(1 for e in ents if O.BY_ID[e].rx.search(s))
-            finding_cue = bool(O.INCREASE.search(s) or O.DECREASE.search(s) or O.NOCHANGE.search(s) or
-                               re.search(r"\b(?:result|show|found|reveal|demonstrat|indicat|suggest|observ)\w*", s, re.I))
-            score = coverage(s, terms) * 2 + ent_hits * 0.6 + finding_cue * 0.5 + (0.3 if p["section"] in ("ABSTRACT", "RESULTS", "CONCL") else 0) - n * 0.03
-            if q_cond:  # question is about a gravity/atmosphere/flow condition: keep sentences that talk about it
-                score += 0.8 if any(O.BY_ID[e].rx.search(s) for e in q_cond) or SPACE_CTX.search(s) else -0.7
-            cands.append((score, n, s.strip()))
+        for s in SENT_SPLIT.split(p["text"].replace("•", ". ")):
+            s = s.strip(" .;,-")
+            if len(s) < 60 or len(s) > 420 or NOT_A_FINDING.search(s) or REFERENCE.search(s) or len(RUN_ON.findall(s)) >= 3 \
+                    or sum(c.isupper() for c in s) > 0.3 * sum(c.isalpha() for c in s):
+                continue  # captions, references, questions, title lines, run-together highlight bullets
+            raw.append((n, p, s + "."))
+    if not raw:
+        return ""
+    sims = sentence_similarity(kb, q, [s for _, _, s in raw])
+    cands = []
+    for (n, p, s), sim in zip(raw, sims):
+        cov = coverage(s, terms)
+        ent_hits = sum(1 for e in ents if O.BY_ID[e].rx.search(s))
+        if not cov and not ent_hits:
+            continue  # shares nothing with the question
+        effect = bool(O.INCREASE.search(s) or O.DECREASE.search(s) or O.NOCHANGE.search(s))
+        score = (6 * sim + cov * 1.2 + min(ent_hits, 3) * 0.35 + effect * 0.6 + bool(FINDING_CUE.search(s)) * 0.4
+                 + (0.3 if p["section"] in ("ABSTRACT", "RESULTS", "CONCL") else -0.3 if p["section"] == "METHODS" else 0) - n * 0.03
+                 - 1.0 * bool(BACKGROUND.search(s)) - 0.8 * bool(METHOD.search(s)) - 0.35 * bool(DANGLING.match(s)))
+        if q_cond:  # question is about a gravity/atmosphere/flow condition: keep sentences that talk about it
+            score += 0.5 if any(O.BY_ID[e].rx.search(s) for e in q_cond) or SPACE_CTX.search(s) else -0.7
+        cands.append((score, n, s))
+    if not cands:
+        return ""
     cands.sort(key=lambda x: -x[0])
+    cands = [c for c in cands if c[0] >= cands[0][0] - 1.6]  # nothing far weaker than the best match
     picked, used_papers, seen = [], Counter(), set()
     for score, n, s in cands:
         key = s[:60].lower()

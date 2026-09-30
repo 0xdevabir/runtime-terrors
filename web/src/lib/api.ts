@@ -12,24 +12,25 @@ export type Strength = { score: number; label: "strong" | "moderate" | "limited"
 export type Direction = "increase" | "decrease" | "no_change" | "mixed";
 
 export type PaperCard = {
-  id: string; title: string; year: string | number; journal?: string; url: string; doi?: string; study_type: string;
-  organisms: string[]; stressors: string[]; platforms: string[]; tissues: string[]; osdr_ids: string[];
+  id: string; title: string; year: string | number; journal?: string | null; center?: string | null; report_type?: string | null;
+  url: string; doi?: string; study_type: string;
+  fuels: string[]; conditions: string[]; platforms: string[]; geometries: string[]; experiments: string[];
   full_text: boolean; n_findings: number; key_finding: string; authors: string[]; n_authors: number;
-  sample_size?: number | null; missions?: string[]; duplicate_of?: string | null;
+  n_tests?: number | null; missions?: string[]; duplicate_of?: string | null;
 };
 
 export type Finding = {
-  id: string; paper_id: string; organism: string | null; stressor: string; tissue: string | null; outcome: string;
-  direction: Direction; genes: string[]; countermeasure: string | null; countermeasure_effect: string | null;
+  id: string; paper_id: string; fuel: string | null; condition: string; geometry: string | null; outcome: string;
+  direction: Direction; species: string[]; countermeasure: string | null; countermeasure_effect: string | null;
   evidence_quote: string; section: string; confidence: number; method: string; year: number; study_type: string;
   magnitude?: string | null; paper_title: string; paper_url: string; labels: Record<string, string | null>;
 };
 
 export type PaperDetail = PaperCard & {
-  keywords: string[]; abstract: string; duration: { value: number; unit: string; days: number } | null;
+  keywords: string[]; abstract: string; duration: { value: number; unit: string; seconds: number; inferred?: boolean } | null;
   summary: { l1: string; l2: string[]; l3: string; key_finding: string; method: string };
-  findings: Finding[]; sections: Record<string, number>; osdr: { id: string; url: string }[];
-  related: PaperCard[]; labels: Record<string, string>; word_count: number; dose?: string | null; limitations?: string[];
+  findings: Finding[]; sections: Record<string, number>; pdf_url?: string | null;
+  related: PaperCard[]; labels: Record<string, string>; word_count: number; atmosphere?: string | null; limitations?: string[];
 };
 
 export type Passage = {
@@ -47,10 +48,10 @@ export type GEdge = {
 };
 
 export type Consensus = {
-  id: string; stressor: string; outcome: string; tissue: string | null; n_papers: number; votes: Record<string, number>;
+  id: string; condition: string; outcome: string; geometry: string | null; n_papers: number; votes: Record<string, number>;
   majority: Direction; agreement: number; status: "consensus" | "contradictory" | "emerging"; strength: Strength; label: string;
   explanations: string[]; timeline?: ({ year: number } & Partial<Record<Direction, number>>)[];
-  sides?: Record<string, { paper_id: string; title: string; year: number; quote: string; organism: string | null; study_type: string; duration_days: number | null }[]>;
+  sides?: Record<string, { paper_id: string; title: string; year: number; quote: string; fuel: string | null; study_type: string; duration_seconds: number | null }[]>;
   labels?: Record<string, string | null>;
 };
 
@@ -61,27 +62,29 @@ export type Hypothesis = {
 
 export type Stats = {
   papers: number; full_text: number; chunks: number; findings: number; nodes: number; edges: number; contradictions: number;
-  consensus: number; osdr_linked: number; llm_papers: number; years: [number, number]; study_types: Record<string, number>;
+  consensus: number; experiment_linked: number; llm_papers: number; years: [number, number]; study_types: Record<string, number>;
   quote_guard: Record<string, number>; llm: boolean; llm_provider?: "gemini" | "claude" | null; dense?: boolean; communities?: number; duplicates?: number;
-  with_sample_size?: number; with_mission?: number;
+  with_n_tests?: number; with_mission?: number;
   top: Record<string, { id: string; label: string; papers: number }[]>;
   contradictions_preview: Consensus[]; hypotheses_preview: Hypothesis[];
 };
 
 export type MissionProfile = {
   id?: string; name: string; destination: string; duration_days: number; microgravity_days: number; partial_gravity_days: number;
-  dose_msv_per_day: number; comm_delay_min: number; crew: number; blurb?: string;
+  o2_percent: number; pressure_kpa: number; comm_delay_min: number; crew: number; blurb?: string; atmosphere?: Atmosphere;
 };
+
+export type Atmosphere = { o2_percent: number; pressure_kpa: number; pressure_psia: number; ppo2_kpa: number };
 
 export type MissionRisk = {
   id: string; name: string; severity: number; exposure: number; relevance: number; uncertainty: number; priority: number;
   tier: "high" | "medium" | "low";
-  evidence: { strength: Strength; n_papers: number; n_findings: number; n_human: number; n_flight: number; by_stressor: Record<string, number> };
+  evidence: { strength: Strength; n_papers: number; n_findings: number; n_material: number; n_flight: number; by_condition: Record<string, number> };
   key_findings: Finding[]; countermeasures: { id: string; label: string; effective: number; ineffective: number; n_papers: number; papers: string[] }[];
   contradictions: { id: string; label: string }[]; gaps: string[]; readiness?: Readiness;
 };
 
-export type Mission = { profile: MissionProfile; total_dose_msv: number; exposure: Record<string, number>; risks: MissionRisk[]; summary: string };
+export type Mission = { profile: MissionProfile; atmosphere: Atmosphere; exposure: Record<string, number>; risks: MissionRisk[]; summary: string };
 
 export type GapMatrix = {
   rows: { id: string; label: string; group: string }[]; cols: { id: string; label: string; group: string }[];
@@ -89,14 +92,14 @@ export type GapMatrix = {
 };
 
 export const STUDY_TYPE_LABEL: Record<string, string> = {
-  flight: "Spaceflight", both: "Flight + analog", ground_analog: "Ground analog", ground: "Ground lab", review: "Review",
+  flight: "Orbital flight", both: "Flight + ground", short_ug: "Drop tower / parabolic", ground: "1g lab", computational: "Model / simulation", review: "Review",
 };
 
 export const DIRECTION_LABEL: Record<string, string> = { increase: "Increase", decrease: "Decrease", no_change: "No change", mixed: "Mixed" };
 
 export type Support = { sentence: string; citations: number[]; score: number | null };
 export type Confidence = { score: number; label: "high" | "medium" | "low" | "none"; reasons: string[] };
-export type Filters = { study_type?: string; organism?: string; stressor?: string; tissue?: string; year_min?: number; year_max?: number };
+export type Filters = { study_type?: string; fuel?: string; condition?: string; geometry?: string; year_min?: number; year_max?: number };
 
 export type Readiness = { level: number; of: number; label: string; checks: { label: string; ok: boolean; detail: string }[] };
 export type Community = { id: number; label: string; size: number; members: string[]; top: string[] };
@@ -132,13 +135,13 @@ export function download(name: string, body: string | Blob, type = "text/plain")
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export type SpeciesBias = {
+export type MaterialBias = {
   groups: string[]; overall: Record<string, number>;
-  rows: { id: string; label: string; n_papers: number; counts: Record<string, number>; human_share: number; flag: boolean }[];
+  rows: { id: string; label: string; n_papers: number; counts: Record<string, number>; material_share: number; flag: boolean }[];
 };
 export type DurationGap = {
-  buckets: string[]; mars_days: number; n_with_duration: number; overall: Record<string, number>;
-  rows: { id: string; label: string; n_with_duration: number; max_days: number; median_days: number; buckets: Record<string, number> }[];
+  buckets: string[]; target_seconds: number; n_with_duration: number; overall: Record<string, number>;
+  rows: { id: string; label: string; n_with_duration: number; max_seconds: number; median_seconds: number; buckets: Record<string, number> }[];
 };
 export type Novelty = {
   consensus_id: string; paper_id: string; title: string; year: number; direction: Direction; majority: Direction;

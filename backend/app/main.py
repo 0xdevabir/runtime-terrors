@@ -28,7 +28,7 @@ from pipeline.paths import KB_DIR, LOG_DIR
 from pipeline.risks import MISSION_PRESETS
 
 app = FastAPI(title="Emberfall — Flame in Freefall", version="1.0")
-app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("SBA_CORS", "*").split(","), allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("EMBER_CORS", "*").split(","), allow_methods=["*"], allow_headers=["*"])
 
 
 def _log(name: str, record: dict) -> None:
@@ -69,7 +69,7 @@ def stats():
     kb = get_kb()
     top = lambda t, n: [{"id": x["id"], "label": x["label"], "papers": x["papers"]} for x in
                         sorted((x for x in kb.graph["nodes"] if x["type"] == t), key=lambda x: -x["papers"])[:n]]
-    return kb.stats | {"llm": llm_available(), "llm_provider": llm_provider(), "dense": kb.embedder is not None, "personas": list(PERSONAS), "top": {t: top(t, 8) for t in ("organism", "stressor", "tissue", "outcome")},
+    return kb.stats | {"llm": llm_available(), "llm_provider": llm_provider(), "dense": kb.embedder is not None, "personas": list(PERSONAS), "top": {t: top(t, 8) for t in ("fuel", "condition", "geometry", "outcome")},
                        "contradictions_preview": [c | {"label": _cons_label(c)} for c in kb.consensus if c["status"] == "contradictory"][:3],
                        "hypotheses_preview": kb.hypotheses[:3]}
 
@@ -83,7 +83,7 @@ def entities():
 
 # ------------------------------------------------------------------ papers
 @app.get("/api/papers")
-def papers(q: str = "", organism: str = "", stressor: str = "", tissue: str = "", study_type: str = "", osdr: bool = False,
+def papers(q: str = "", fuel: str = "", condition: str = "", geometry: str = "", study_type: str = "", experiment: bool = False,
            year_from: int = 0, year_to: int = 9999, sort: str = "year", offset: int = 0, limit: int = Query(40, le=200),
            ids: str = ""):
     kb = get_kb()
@@ -95,13 +95,13 @@ def papers(q: str = "", organism: str = "", stressor: str = "", tissue: str = ""
         ql = q.lower()
         hits = {p["paper_id"] for p in hybrid_search(kb, q, k=60, per_paper=1)["passages"]}
         items = [p for p in items if p["id"] in hits or ql in p["title"].lower() or ql == p["id"].lower()]
-    for field, val in (("organisms", organism), ("stressors", stressor), ("tissues", tissue)):
+    for field, val in (("fuels", fuel), ("conditions", condition), ("geometries", geometry)):
         if val:
             items = [p for p in items if val in p.get(field, [])]
     if study_type:
         items = [p for p in items if p["study_type"] in study_type.split(",")]
-    if osdr:
-        items = [p for p in items if p.get("osdr_ids")]
+    if experiment:
+        items = [p for p in items if p.get("experiments")]
     items = [p for p in items if year_from <= int(p.get("year") or 0) <= year_to]
     if sort == "year":
         items = sorted(items, key=lambda p: (-int(p.get("year") or 0), p["title"]))
@@ -118,17 +118,18 @@ def paper(pid: str):
     if pid not in kb.paper:
         raise HTTPException(404, "paper not found")
     p = kb.paper[pid]
-    mine = set(p.get("organisms", []) + p.get("stressors", []) + p.get("tissues", []))
-    related = sorted(((len(mine & set(o.get("organisms", []) + o.get("stressors", []) + o.get("tissues", []))), o["id"])
+    mine = set(p.get("fuels", []) + p.get("conditions", []) + p.get("geometries", []))
+    related = sorted(((len(mine & set(o.get("fuels", []) + o.get("conditions", []) + o.get("geometries", []))), o["id"])
                       for o in kb.papers if o["id"] != pid), reverse=True)[:6]
     sections = Counter(kb.chunks[i]["section"] for i in kb.chunks_by_paper[pid])
     return kb.paper_card(pid) | {
         "authors": p["authors"], "keywords": p.get("keywords", []), "abstract": p["abstract"], "summary": p["summary"],
-        "duration": p.get("duration"), "word_count": p.get("word_count"), "dose": p.get("dose"),
-        "limitations": p.get("limitations", []),
+        "duration": p.get("duration"), "word_count": p.get("word_count"), "atmosphere": p.get("atmosphere"),
+        "limitations": p.get("limitations", []), "center": p.get("center"), "report_type": p.get("report_type"),
+        "pdf_url": p.get("pdf_url"),
         "findings": [kb.finding_card(f["id"]) for f in kb.findings_by_paper[pid]],
         "sections": dict(sections),
-        "osdr": [{"id": o, "url": f"https://osdr.nasa.gov/bio/repo/data/studies/{o.replace('GLDS', 'OSD')}"} for o in p.get("osdr_ids", [])],
+        "experiments": p.get("experiments", []),
         "related": [kb.paper_card(i) for n, i in related if n >= 2],
         "labels": {e: kb.label(e) for e in mine},
     }
@@ -149,25 +150,25 @@ def paper_chunks(pid: str, section: str = ""):
 
 
 # ---------------------------------------------------------------- search / ask
-def _filters(study_type: str, organism: str, stressor: str, tissue: str, year_min: int, year_max: int) -> dict | None:
-    f = {"study_type": study_type.split(",") if study_type else None, "organism": organism.split(",") if organism else None,
-         "stressor": stressor.split(",") if stressor else None, "tissue": tissue.split(",") if tissue else None,
+def _filters(study_type: str, fuel: str, condition: str, geometry: str, year_min: int, year_max: int) -> dict | None:
+    f = {"study_type": study_type.split(",") if study_type else None, "fuel": fuel.split(",") if fuel else None,
+         "condition": condition.split(",") if condition else None, "geometry": geometry.split(",") if geometry else None,
          "year_min": year_min or None, "year_max": year_max or None}
     f = {k: v for k, v in f.items() if v}
     return f or None
 
 
 @app.get("/api/search")
-def search(q: str, k: int = Query(10, le=50), study_type: str = "", organism: str = "", stressor: str = "", tissue: str = "",
+def search(q: str, k: int = Query(10, le=50), study_type: str = "", fuel: str = "", condition: str = "", geometry: str = "",
            year_min: int = 0, year_max: int = 0, mode: Literal["hybrid", "bm25", "dense", "rerank"] | None = None):
-    return hybrid_search(get_kb(), q, k=k, filters=_filters(study_type, organism, stressor, tissue, year_min, year_max), mode=mode)
+    return hybrid_search(get_kb(), q, k=k, filters=_filters(study_type, fuel, condition, geometry, year_min, year_max), mode=mode)
 
 
 @app.get("/api/ask")
 async def ask(q: str = Query(..., min_length=3, max_length=500), persona: str = "scientist", study_type: str = "",
-              organism: str = "", stressor: str = "", tissue: str = "", year_min: int = 0, year_max: int = 0,
+              fuel: str = "", condition: str = "", geometry: str = "", year_min: int = 0, year_max: int = 0,
               history: str = Query("", max_length=12000, description="JSON list of earlier turns [{q, a}] for follow-ups")):
-    filters = _filters(study_type, organism, stressor, tissue, year_min, year_max)
+    filters = _filters(study_type, fuel, condition, geometry, year_min, year_max)
     try:
         turns = [{"q": str(t.get("q", ""))[:500], "a": str(t.get("a", ""))[:2500]} for t in json.loads(history)][-4:] if history else []
     except (ValueError, AttributeError):
@@ -296,7 +297,7 @@ def graph_node(nid: str):
     return kb.node[nid] | {"synonyms": ent.get("synonyms", []), "neighbors": neigh[:30],
                            "papers": [kb.paper_card(p) for p in pids[:25]],
                            "consensus": [c | {"label": _cons_label(c)} for c in kb.consensus
-                                         if nid in (c["stressor"], c["outcome"], c["tissue"])][:8]}
+                                         if nid in (c["condition"], c["outcome"], c["geometry"])][:8]}
 
 
 @app.get("/api/graph/edge")
@@ -313,7 +314,7 @@ def graph_edge(id: str):
 # --------------------------------------------------------------- insights
 def _cons_label(c: dict) -> str:
     kb = get_kb()
-    return " · ".join(filter(None, (kb.label(c["stressor"]), kb.label(c["outcome"]), kb.label(c["tissue"]))))
+    return " · ".join(filter(None, (kb.label(c["condition"]), kb.label(c["outcome"]), kb.label(c["geometry"]))))
 
 
 @app.get("/api/consensus")
@@ -329,7 +330,7 @@ def consensus_one(cid: str):
     if cid not in kb.consensus_by_id:
         raise HTTPException(404, "not found")
     c = kb.consensus_by_id[cid]
-    return c | {"label": _cons_label(c), "labels": {k: kb.label(c[k]) for k in ("stressor", "outcome", "tissue")}}
+    return c | {"label": _cons_label(c), "labels": {k: kb.label(c[k]) for k in ("condition", "outcome", "geometry")}}
 
 
 @app.get("/api/gaps")
@@ -349,16 +350,16 @@ def takeaways():
 
 @app.get("/api/topic/{tid:path}")
 def topic(tid: str):
-    """Topic synthesis for one body system: takeaways, evidence groups, trend, most central papers."""
+    """Topic synthesis for one flame geometry: takeaways, evidence groups, trend, most central papers."""
     kb = get_kb()
     if tid not in kb.node:
         raise HTTPException(404, "unknown topic")
-    fs = [f for f in kb.findings if f.get("tissue") == tid]
+    fs = [f for f in kb.findings if f.get("geometry") == tid]
     pids = Counter(f["paper_id"] for f in fs)
     years = Counter(int(kb.paper[p]["year"]) for p in pids if kb.paper[p].get("year"))
     return {"id": tid, "label": kb.label(tid), "takeaways": kb.takeaways.get(tid, {}).get("items", []),
             "n_papers": len(pids), "n_findings": len(fs),
-            "consensus": [c | {"label": _cons_label(c)} for c in sorted((c for c in kb.consensus if c["tissue"] == tid), key=lambda c: -c["n_papers"])],
+            "consensus": [c | {"label": _cons_label(c)} for c in sorted((c for c in kb.consensus if c["geometry"] == tid), key=lambda c: -c["n_papers"])],
             "by_year": sorted(years.items()),
             "papers": [kb.paper_card(p) for p, _ in pids.most_common(12)]}
 
@@ -371,16 +372,16 @@ def compare(ids: str):
     missing = [i for i in want if i not in kb.paper]
     if len(want) < 2 or missing:
         raise HTTPException(422, f"need 2-4 known paper ids; unknown: {missing}")
-    fields = ("organisms", "stressors", "platforms", "tissues")
+    fields = ("fuels", "conditions", "platforms", "geometries")
     items = []
     for pid in want:
         p = kb.paper[pid]
-        items.append(kb.paper_card(pid) | {"duration": p.get("duration"), "dose": p.get("dose"), "limitations": p.get("limitations", []),
+        items.append(kb.paper_card(pid) | {"duration": p.get("duration"), "atmosphere": p.get("atmosphere"), "experiments": p.get("experiments", []), "limitations": p.get("limitations", []),
                                            "summary": p["summary"], "findings": [kb.finding_card(f["id"]) for f in kb.findings_by_paper[pid][:8]]})
     shared = {f: sorted(set.intersection(*(set(kb.paper[i].get(f, [])) for i in want))) for f in fields}
-    keyed = [{(f["stressor"], f["outcome"]): f["direction"] for f in kb.findings_by_paper[i]} for i in want]
+    keyed = [{(f["condition"], f["outcome"]): f["direction"] for f in kb.findings_by_paper[i]} for i in want]
     common = set.intersection(*(set(k) for k in keyed))
-    agreement = [{"stressor": kb.label(s), "outcome": kb.label(o), "directions": [k[(s, o)] for k in keyed],
+    agreement = [{"condition": kb.label(s), "outcome": kb.label(o), "directions": [k[(s, o)] for k in keyed],
                   "agree": len({k[(s, o)] for k in keyed}) == 1} for s, o in sorted(common)]
     labels = {e: kb.label(e) for it in items for f in fields for e in it.get(f) or []}
     return {"items": items, "shared": shared, "agreement": agreement, "labels": labels}
@@ -403,7 +404,7 @@ def export_papers(format: Literal["bibtex", "ris", "csv"] = "csv", ids: str = ""
 
 @app.get("/api/export/{dataset}")
 def export_dataset(dataset: Literal["findings", "consensus", "graph", "gaps", "entities"], format: Literal["json", "csv"] = "json"):
-    """Open data: download the structured knowledge base (CC-BY, derived from open-access PMC papers)."""
+    """Open data: download the structured knowledge base (derived from NASA NTRS public reports)."""
     kb = get_kb()
     if format == "csv":
         if dataset == "findings":
@@ -432,7 +433,8 @@ class Profile(BaseModel):
     duration_days: int = Field(180, ge=1, le=3000)
     microgravity_days: int = Field(180, ge=0, le=3000)
     partial_gravity_days: int = Field(0, ge=0, le=3000)
-    dose_msv_per_day: float = Field(0.5, ge=0, le=10)
+    o2_percent: float = Field(21.0, ge=15, le=100)
+    pressure_kpa: float = Field(101.3, ge=20, le=110)
     comm_delay_min: float = Field(0, ge=0, le=60)
     crew: int = Field(4, ge=1, le=12)
 

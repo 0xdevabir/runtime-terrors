@@ -4,12 +4,12 @@ import { useApi } from "./useApi";
 export type Entity = { id: string; type: string; label: string; group: string; ontology: string | null; synonyms: string[]; papers: number };
 
 export const TYPE_META: Record<string, { label: string; color: string }> = {
-  stressor: { label: "Stressor", color: "var(--series-8)" },
-  organism: { label: "Organism", color: "var(--series-3)" },
-  tissue: { label: "Tissue / system", color: "var(--series-1)" },
+  condition: { label: "Condition", color: "var(--series-8)" },
+  fuel: { label: "Fuel / material", color: "var(--series-3)" },
+  geometry: { label: "Flame geometry", color: "var(--series-1)" },
   outcome: { label: "Outcome", color: "var(--series-7)" },
   countermeasure: { label: "Countermeasure", color: "var(--series-6)" },
-  gene: { label: "Gene / pathway", color: "var(--series-5)" },
+  species: { label: "Chemical species", color: "var(--series-5)" },
   platform: { label: "Platform", color: "var(--series-4)" },
 };
 

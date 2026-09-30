@@ -13,11 +13,11 @@ export const NAV: { title: string; items: NavItem[] }[] = [
   ] },
   { title: "Explore", items: [
     { href: "/graph", label: "Knowledge Graph", icon: "graph", color: "var(--purple)" },
-    { href: "/papers", label: "Publications", icon: "books", color: "var(--orange)" },
+    { href: "/papers", label: "Reports", icon: "books", color: "var(--orange)" },
     { href: "/gaps", label: "Evidence Gaps", icon: "grid", color: "var(--teal)" },
     { href: "/trends", label: "Trends", icon: "chart", color: "var(--green)" },
     { href: "/topics", label: "Topics", icon: "doc", color: "var(--blue)" },
-    { href: "/compare", label: "Compare Papers", icon: "split", color: "var(--indigo)" },
+    { href: "/compare", label: "Compare Reports", icon: "split", color: "var(--indigo)" },
     { href: "/glossary", label: "Glossary", icon: "quote", color: "var(--gray)" },
   ] },
   { title: "Decide", items: [

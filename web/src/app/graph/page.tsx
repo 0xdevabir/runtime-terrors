@@ -12,9 +12,9 @@ import { TYPE_META, useEntities } from "@/lib/entities";
 type NodeDetail = GNode & { synonyms: string[]; neighbors: { id: string; label: string; relation: string; edge: string; papers: number; majority: string }[]; papers: PaperCard[]; consensus: Consensus[] };
 type EdgeDetail = GEdge & { source_label: string; target_label: string; finding_cards: Finding[]; paper_cards: PaperCard[] };
 
-const ALL_TYPES = ["stressor", "organism", "tissue", "outcome", "countermeasure", "gene", "platform"];
+const ALL_TYPES = ["condition", "fuel", "geometry", "outcome", "countermeasure", "species", "platform"];
 const REL_LABEL: Record<string, string> = {
-  affects: "affects", exposed_to: "exposed to", observed_in: "observed in", mitigates: "mitigates",
+  affects: "affects", burned_in: "burned in", observed_in: "observed in", mitigates: "mitigates",
   fails_to_mitigate: "fails to mitigate", implicated_in: "implicated in", hosted: "hosted",
 };
 
@@ -32,7 +32,7 @@ function Graph() {
   const focus = params.get("focus") ?? "";
   const pathParam = params.get("path") ?? "";
   const lit = useMemo(() => new Set((pathParam || params.get("lit") || "").split(",").filter(Boolean)), [params, pathParam]);
-  const [types, setTypes] = useState<Set<string>>(new Set(["stressor", "organism", "tissue", "outcome", "countermeasure"]));
+  const [types, setTypes] = useState<Set<string>>(new Set(["condition", "fuel", "geometry", "outcome", "countermeasure"]));
   const [minPapers, setMinPapers] = useState(3);
   const [depth, setDepth] = useState<"1" | "2">("1");
   const [data, setData] = useState<{ nodes: GNode[]; edges: GEdge[]; communities: Community[] } | null>(null);
@@ -150,13 +150,13 @@ function Graph() {
   const toggle = (t: string) => setTypes((s) => { const n = new Set(s); if (n.has(t)) { if (n.size > 1) n.delete(t); } else n.add(t); return n; });
 
   return (
-    <Page wide title="Knowledge Graph" subtitle="Entities extracted from every publication and the evidence linking them. Arrow colour shows the majority effect direction; tap any node or link for the underlying papers and quotes.">
+    <Page wide title="Knowledge Graph" subtitle="Entities extracted from every report and the evidence linking them. Arrow colour shows the majority effect direction; tap any node or link for the underlying reports and quotes.">
       <div className="flex flex-col lg:flex-row gap-3 mb-3 no-print">
         <div className="relative lg:w-[320px]">
           <form onSubmit={(e) => { e.preventDefault(); if (matches[0]) setFocus(matches[0].id); }}
             className="flex items-center gap-1.5 h-9 px-2 rounded-[10px] bg-fill">
             <Icon name="search" size={17} className="text-label-2" stroke={2.2} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Focus on an entity (e.g. bone, mouse)"
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Focus on an entity (e.g. PMMA, soot)"
               className="flex-1 bg-transparent outline-none t-body placeholder:text-label-2 min-w-0" />
           </form>
           {matches.length > 0 && (
@@ -268,8 +268,8 @@ function NodePanel({ d, onFocus }: { d: NodeDetail; onFocus: (id: string) => voi
         </div>
       )}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.papers}</div><div className="t-foot text-label-2">papers</div></div>
-        <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.flight_papers}</div><div className="t-foot text-label-2">from spaceflight</div></div>
+        <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.papers}</div><div className="t-foot text-label-2">reports</div></div>
+        <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.flight_papers}</div><div className="t-foot text-label-2">from orbital flight</div></div>
       </div>
       <button onClick={() => onFocus(d.id)} className="w-full h-11 rounded-xl bg-tint text-white t-headline mb-6 btn-press">Focus graph here</button>
       {d.consensus.length > 0 && (
@@ -289,7 +289,7 @@ function NodePanel({ d, onFocus }: { d: NodeDetail; onFocus: (id: string) => voi
             detail={n.majority ? <DirectionGlyph d={n.majority} /> : undefined} />
         ))}
       </Section>
-      <Section header={`Publications (${d.papers.length})`}>
+      <Section header={`Reports (${d.papers.length})`}>
         {d.papers.slice(0, 12).map((p) => <Row key={p.id} href={`/papers/${p.id}`} title={<span className="t-sub line-clamp-2">{p.title}</span>} subtitle={`${p.year} · ${p.journal ?? ""}`} />)}
       </Section>
     </div>
@@ -312,7 +312,7 @@ function EdgePanel({ d }: { d: EdgeDetail }) {
             {d.finding_cards.slice(0, 15).map((f) => (
               <Link key={f.id} href={`/papers/${f.paper_id}`} className="block bg-bg-2 rounded-2xl p-3.5 pressable">
                 <div className="flex flex-wrap items-center gap-2 mb-2"><DirectionGlyph d={f.direction} /><StudyTag type={f.study_type} />
-                  <span className="t-cap text-label-2">{[f.labels.organism, f.year].filter(Boolean).join(" · ")}</span></div>
+                  <span className="t-cap text-label-2">{[f.labels.fuel, f.year].filter(Boolean).join(" · ")}</span></div>
                 <Quote section={f.section}>{f.evidence_quote}</Quote>
                 <div className="t-cap text-label-2 mt-2 line-clamp-1">{f.paper_title}</div>
               </Link>
@@ -320,7 +320,7 @@ function EdgePanel({ d }: { d: EdgeDetail }) {
           </div>
         </>
       )}
-      <Section header="Publications">
+      <Section header="Reports">
         {d.paper_cards.slice(0, 15).map((p) => <Row key={p.id} href={`/papers/${p.id}`} title={<span className="t-sub line-clamp-2">{p.title}</span>} subtitle={`${p.year}`} />)}
       </Section>
     </div>
@@ -354,9 +354,9 @@ function PathFinder({ initial, onShow }: { initial: string; onShow: (ids: string
   };
   return (
     <div className="space-y-3">
-      <p className="t-foot text-label-2">How are two concepts connected in the literature? Paths prefer links backed by many papers.</p>
-      <EntityPicker value={a} onChange={setA} placeholder="From (e.g. Space radiation)" />
-      <EntityPicker value={b} onChange={setB} placeholder="To (e.g. Heart)" />
+      <p className="t-foot text-label-2">How are two concepts connected in the literature? Paths prefer links backed by many reports.</p>
+      <EntityPicker value={a} onChange={setA} placeholder="From (e.g. Elevated oxygen)" />
+      <EntityPicker value={b} onChange={setB} placeholder="To (e.g. Flame spread rate)" />
       <button onClick={run} disabled={!a || !b || a === b || busy} className="w-full h-11 rounded-xl bg-tint text-white t-headline btn-press disabled:opacity-40">
         {busy ? "Searching…" : "Find evidence paths"}
       </button>

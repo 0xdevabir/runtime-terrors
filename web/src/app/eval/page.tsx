@@ -22,7 +22,7 @@ type Eval = {
 const STAGE: Record<string, string> = { bm25: "BM25 keywords", dense: "Dense embeddings", hybrid: "Hybrid (RRF + boosts)", rerank: "Hybrid + cross-encoder" };
 
 const METRICS: { k: string; label: string; help: string }[] = [
-  { k: "hit@5", label: "Relevant paper in top 5", help: "Share of answerable questions where a topically relevant publication is among the first five retrieved." },
+  { k: "hit@5", label: "Relevant report in top 5", help: "Share of answerable questions where a topically relevant report is among the first five retrieved." },
   { k: "mrr", label: "Mean reciprocal rank", help: "1 / rank of the first relevant paper, averaged. 1.0 means it is always first." },
   { k: "answer_rate", label: "Answers in-domain questions", help: "Answerable questions that were answered instead of refused." },
   { k: "refusal_accuracy", label: "Refuses off-topic questions", help: "Questions outside microgravity combustion / fire safety that were correctly declined instead of answered." },
@@ -144,10 +144,10 @@ export default function EvalPage() {
 
       {s && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-          <Stat value={s.papers} label="publications indexed" icon="books" color="var(--orange)" />
+          <Stat value={s.papers} label="reports indexed" icon="books" color="var(--orange)" />
           <Stat value={s.chunks.toLocaleString()} label="passages searchable" icon="search" color="var(--tint)" />
           <Stat value={s.findings.toLocaleString()} label="structured findings" icon="quote" color="var(--indigo)" />
-          <Stat value={s.llm_papers} label="papers processed by Claude" icon="sparkles" color="var(--purple)" />
+          <Stat value={s.llm_papers} label="reports processed by an LLM" icon="sparkles" color="var(--purple)" />
         </div>
       )}
     </Page>

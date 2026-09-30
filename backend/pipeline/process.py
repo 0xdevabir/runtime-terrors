@@ -1,34 +1,70 @@
-"""Step 2 - clean raw downloads into papers + sections + retrieval chunks.
+"""Step 2 - clean NTRS records + extracted text into papers + sections + retrieval chunks.
 
-Outputs (data/kb/):
-  papers.json   one record per paper (metadata, abstract, section text, flags)
-  chunks.jsonl  ~150-250 word passages, never crossing a section boundary
+Reads  data/processed/papers.csv            NTRS metadata (`python -m pipeline.ntrs meta`)
+       data/raw/ntrs/fulltext/<id>.txt      NTRS-extracted report text (`python -m pipeline.ntrs fulltext`)
+       data/processed/text/<id>.txt         optional PDF text fallback (`python -m pipeline.ntrs text`)
+Writes data/kb/papers_raw.json  one record per report (metadata, abstract, section text, flags)
+       data/kb/chunks.jsonl     ~150-250 word passages, never crossing a section boundary
+
+NTRS text is OCR/PDF-extracted and unstructured, so sections are recovered from
+heading lines (Abstract, Introduction, Experimental, Results, ...) and reading
+stops at References / Bibliography.
 """
 from __future__ import annotations
 
+import csv
 import html
 import json
 import re
-import xml.etree.ElementTree as ET
 
-import httpx
+from pipeline.ntrs import FULLTEXT_DIR, PAPERS_CSV, TEXT_DIR
+from pipeline.paths import KB_DIR
 
-from pipeline.fetch import read_list
-from pipeline.paths import KB_DIR, RAW_DIR
-
-KEEP = {"TITLE", "ABSTRACT", "INTRO", "METHODS", "RESULTS", "DISCUSS", "CONCL", "FIG", "CASE"}
 SECTION_LABEL = {
     "ABSTRACT": "Abstract", "INTRO": "Introduction", "METHODS": "Methods", "RESULTS": "Results",
-    "DISCUSS": "Discussion", "CONCL": "Conclusion", "FIG": "Figure caption", "CASE": "Case report",
+    "DISCUSS": "Discussion", "CONCL": "Conclusion", "FIG": "Figure caption",
 }
 WORDS_PER_CHUNK = 180
-
+MAX_WORDS = 15000  # cap long reports (proceedings volumes, bibliographies) so one document cannot flood retrieval
 
 # in-text reference markers and figure/table pointers: noise for retrieval and evidence quotes
 CITE_NUM = re.compile(r"\s?\[\d{1,3}(?:\s?[-–,]\s?\d{1,3})*\]")
 CITE_AUTHOR = re.compile(r"\s?\((?:(?:see |e\.g\., ?)?[A-Z][\w'\-]+(?: et al\.?| and [A-Z][\w'\-]+| & [A-Z][\w'\-]+)?,? (?:19|20)\d{2}[a-z]?(?:, ?(?:19|20)\d{2}[a-z]?)*;?\s?)+\)")
 _FIG = r"(?:Supplementary |Suppl\.? )?(?:Fig(?:ure)?s?|Tables?)\.?\s?S?\d+[A-Za-z]?(?:\s?[,–\-]\s?S?\d*[A-Za-z]?)*"
 FIG_REF = re.compile(r"\s?\((?:see )?" + _FIG + r"(?:\s?[;,]\s?(?:and )?" + _FIG + r")*\)")
+
+# a heading line: optional numbering ("2.", "II.", "3.1") then a known section word, nothing much after
+HEADING = re.compile(
+    r"^\s*(?:(?:\d{1,2}(?:\.\d{1,2})*|[IVX]{1,4})[.)]?\s+)?"
+    r"(abstract|summary|introduction|background|nomenclature|"
+    r"experimental(?: (?:setup|set-up|apparatus|methods?|procedures?|hardware|approach))?|"
+    r"(?:experiment|test) (?:description|setup|set-up|apparatus|hardware|procedures?)|apparatus|hardware|"
+    r"(?:materials? and )?methods?|methodology|approach|numerical (?:model|method)s?|(?:the )?model|"
+    r"results?(?: and discussion)?|discussion|observations|"
+    r"conclusions?|concluding remarks|summary and conclusions?|"
+    r"references|bibliography|literature cited|acknowledge?ments?)\s*:?\s*$",
+    re.I,
+)
+STOP = ("references", "bibliography", "literature cited")
+FIG_LINE = re.compile(r"^\s*(?:Fig(?:ure)?\.?|Table)\s*\d+[.:]", re.I)
+TOC_LINE = re.compile(r"\.{5,}|(?:\. ){5,}")
+
+
+def _section_type(head: str) -> str | None:
+    h = head.lower()
+    if h.startswith(STOP) or h.startswith("acknow") or h.startswith("nomenclature"):
+        return None
+    if "result" in h:
+        return "RESULTS"
+    if h.startswith("abstract") or h == "summary":
+        return "ABSTRACT"
+    if "conclu" in h:
+        return "CONCL"
+    if "discussion" in h or "observation" in h:
+        return "DISCUSS"
+    if h.startswith(("introduction", "background")):
+        return "INTRO"
+    return "METHODS"
 
 
 def _clean(t: str) -> str:
@@ -43,82 +79,50 @@ def _clean_body(t: str) -> str:
     return re.sub(r"\s+([.,;:])", r"\1", t).strip()
 
 
-def parse_bioc(d: dict) -> dict:
-    doc = d["bioc"]["documents"][0]
-    front = doc["passages"][0]["infons"]
-    authors = []
-    for k in sorted((k for k in front if k.startswith("name_")), key=lambda k: int(k.split("_")[1])):
-        parts = dict(p.split(":", 1) for p in front[k].split(";") if ":" in p)
-        authors.append(f"{parts.get('given-names', '')} {parts.get('surname', '')}".strip())
+def parse_text(raw: str) -> list[dict]:
+    """Recover (type, text) sections from report text. Paragraphs are blank-line separated."""
+    raw = re.sub(r"(\w)-\n(\w)", r"\1\2", raw.replace("\r", ""))  # re-join words hyphenated across lines
     sections: list[dict] = []
-    for p in doc["passages"]:
-        st = p["infons"].get("section_type", "")
-        typ = p["infons"].get("type", "")
-        if st not in KEEP or st == "TITLE" or not p.get("text"):
+    cur, saw_heading, words = "BODY", False, 0
+    for block in re.split(r"\n\s*\n", raw):
+        lines = [l.strip() for l in block.split("\n") if l.strip()]
+        if not lines:
             continue
-        if typ.startswith("title") or typ.endswith("title_1") or typ in ("fig_title_caption",):
+        m = HEADING.match(lines[0]) if len(lines[0]) < 70 else None
+        if m:
+            head = m.group(1).lower()
+            if head.startswith(STOP) and words > 300:
+                break
+            cur, saw_heading = _section_type(head) or "SKIP", True
+            lines = lines[1:]
+            if not lines:
+                continue
+        text = " ".join(lines)
+        if TOC_LINE.search(text) or len(text) < 40:
             continue
-        sections.append({"type": st, "text": _clean(p["text"]) if st == "FIG" else _clean_body(p["text"])})
-    title = _clean(doc["passages"][0]["text"]) if doc["passages"] else d["row"]["title"]
-    return {
-        "title": title or d["row"]["title"],
-        "year": int(front["year"]) if str(front.get("year", "")).isdigit() else None,
-        "doi": front.get("article-id_doi"),
-        "pmid": front.get("article-id_pmid"),
-        "authors": authors,
-        "keywords": [k.strip() for k in re.split(r"[;,]", front.get("kwd", "")) if k.strip()],
-        "sections": sections,
-        "full_text": True,
-    }
-
-
-def parse_xml(d: dict) -> dict:
-    x = d["xml"]
-    x = re.sub(r"<!DOCTYPE[^>]*>", "", x)
-    root = ET.fromstring(x)
-
-    def txt(el):
-        return _clean("".join(el.itertext())) if el is not None else ""
-
-    art = root.find(".//article")
-    art = art if art is not None else root
-    meta = art.find(".//article-meta")
-    year = None
-    for pd in meta.findall(".//pub-date") if meta is not None else []:
-        y = pd.findtext("year")
-        if y and y.isdigit():
-            year = int(y)
+        # mostly digits/symbols -> table residue or page furniture
+        if sum(c.isalpha() for c in text) < 0.6 * len(text.replace(" ", "")):
+            continue
+        typ = "FIG" if FIG_LINE.match(text) else cur
+        if typ == "SKIP":
+            continue
+        clean = _clean(text) if typ == "FIG" else _clean_body(text)
+        sections.append({"type": typ, "text": clean})
+        words += len(clean.split())
+        if words >= MAX_WORDS:
             break
-    ids = {i.get("pub-id-type"): i.text for i in (meta.findall("article-id") if meta is not None else [])}
-    authors = []
-    for c in art.findall(".//contrib[@contrib-type='author']"):
-        n = c.find("name")
-        if n is not None:
-            authors.append(f"{n.findtext('given-names', '')} {n.findtext('surname', '')}".strip())
-    sections = []
-    for ab in art.findall(".//abstract"):
-        if ab.get("abstract-type") in ("graphical", "teaser"):
-            continue
-        paras = [_clean_body(txt(p)) for p in ab.iter("p")] or [_clean_body(txt(ab))]
-        sections += [{"type": "ABSTRACT", "text": p} for p in paras if p]
-    body = art.find(".//body")
-    if body is not None:
-        for sec in body.findall("sec"):
-            head = (sec.findtext("title") or "").lower()
-            st = ("METHODS" if "method" in head or "material" in head else "RESULTS" if "result" in head
-                  else "DISCUSS" if "discussion" in head else "CONCL" if "conclu" in head else "INTRO")
-            sections += [{"type": st, "text": _clean_body(txt(p))} for p in sec.iter("p") if txt(p)]
-    return {
-        "title": txt(art.find(".//article-title")) or d["row"]["title"],
-        "year": year,
-        "doi": ids.get("doi"),
-        "pmid": ids.get("pmid"),
-        "authors": authors,
-        "keywords": [txt(k) for k in art.findall(".//kwd")],
-        "journal": txt(art.find(".//journal-title")) or None,
-        "sections": sections,
-        "full_text": body is not None,
-    }
+    # unheaded text: before the first heading it is front matter/introduction; with no headings at all
+    # it is the whole report body, which still carries the findings
+    for s in sections:
+        if s["type"] == "BODY":
+            s["type"] = "INTRO" if saw_heading else "DISCUSS"
+    # reviews, briefings and OCR-garbled reports often have no results/conclusion heading: past the opening
+    # paragraphs their running text is where the claims are
+    if not any(s["type"] in ("RESULTS", "DISCUSS", "CONCL") for s in sections):
+        body = [s for s in sections if s["type"] == "INTRO"]
+        for s in body[2:]:
+            s["type"] = "DISCUSS"
+    return sections
 
 
 def chunk_sections(pid: str, sections: list[dict]) -> list[dict]:
@@ -151,13 +155,20 @@ def chunk_sections(pid: str, sections: list[dict]) -> list[dict]:
     return chunks
 
 
+def _surname(author: str) -> str:
+    """NTRS names come as 'Olson, Sandra L.' or 'Sandra Olson'."""
+    a = author.strip()
+    return (a.split(",")[0] if "," in a else (a.split() or [""])[-1]).lower()
+
+
 def mark_duplicates(papers: list[dict]) -> int:
-    """Flag near-duplicate versions: same DOI, or titles >= 95% similar with the same first author.
+    """Flag near-duplicate versions: same DOI, or titles >= 95% similar with the same first author
+    (NTRS often holds a conference paper, its presentation and a journal reprint).
     The richest version (full text, most words) is kept as the original."""
     from rapidfuzz import fuzz
 
     norm = lambda t: re.sub(r"[^a-z0-9 ]", "", (t or "").lower())
-    first = lambda p: p["authors"][0].split()[-1].lower() if p["authors"] and p["authors"][0].split() else ""
+    first = lambda p: _surname(p["authors"][0]) if p["authors"] else ""
     kept: list[dict] = []
     for p in sorted(papers, key=lambda p: (not p["full_text"], -(p["word_count"] or 0))):
         dup = next((q for q in kept if (p["doi"] and p["doi"] == q["doi"]) or
@@ -169,63 +180,47 @@ def mark_duplicates(papers: list[dict]) -> int:
     return len(papers) - len(kept)
 
 
-def fetch_journals(pmids: list[str]) -> dict[str, str]:
-    """One-shot esummary call for journal names (BioC lacks them)."""
-    out: dict[str, str] = {}
-    try:
-        for i in range(0, len(pmids), 200):
-            r = httpx.post("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
-                           data={"db": "pubmed", "id": ",".join(pmids[i:i + 200]), "retmode": "json"}, timeout=60)
-            res = r.json()["result"]
-            for uid in res.get("uids", []):
-                out[uid] = res[uid].get("fulljournalname") or res[uid].get("source")
-    except Exception as exc:  # network optional
-        print(f"[process] journal lookup skipped: {exc}")
-    return out
+def read_rows() -> list[dict]:
+    with PAPERS_CSV.open(encoding="utf-8") as f:
+        return list(csv.DictReader(f))
 
 
 def main() -> None:
     KB_DIR.mkdir(parents=True, exist_ok=True)
-    rows = read_list()
     papers, chunks = [], []
-    for row in rows:
-        f = RAW_DIR / f"{row['pmcid']}.json"
-        if not f.exists():
-            continue
-        d = json.loads(f.read_text())
-        try:
-            p = parse_bioc(d) if d["kind"] == "bioc" else parse_xml(d)
-        except Exception as exc:
-            print(f"[process] {row['pmcid']} parse error: {exc}")
-            continue
-        pid = row["pmcid"]
-        abstract = " ".join(s["text"] for s in p["sections"] if s["type"] == "ABSTRACT")
-        text_all = " ".join(s["text"] for s in p["sections"])
+    for row in read_rows():
+        pid = row["id"]
+        src = next((d / f"{pid}.txt" for d in (FULLTEXT_DIR, TEXT_DIR) if (d / f"{pid}.txt").exists()), None)
+        body = parse_text(src.read_text(errors="ignore")) if src else []
+        abstract = _clean_body(row["abstract"] or "")
+        if abstract:  # the curated NTRS abstract beats an OCR'd one
+            body = [s for s in body if s["type"] != "ABSTRACT"]
+        sections = ([{"type": "ABSTRACT", "text": abstract}] if abstract else []) + body
+        if not sections:
+            sections = [{"type": "ABSTRACT", "text": _clean(row["title"])}]
+        text_all = " ".join(s["text"] for s in sections)
         paper = {
-            "id": pid, "pmcid": pid, "url": row["link"], "title": p["title"], "year": p["year"],
-            "doi": p["doi"], "pmid": p["pmid"], "authors": p["authors"], "journal": p.get("journal"),
-            "keywords": p["keywords"], "abstract": abstract, "full_text": p["full_text"] and len(text_all) > len(abstract) * 2,
-            "osdr_ids": sorted(set(m.upper().replace(" ", "") for m in re.findall(r"\b(?:GLDS|OSD)-\d{1,4}\b", text_all, re.I))),
+            "id": pid, "ntrs_id": pid, "url": row["ntrs_url"] or f"https://ntrs.nasa.gov/citations/{pid}",
+            "title": _clean(row["title"]), "year": int(row["year"]) if row["year"].isdigit() else None,
+            "doi": row["doi"] or None, "authors": [a.strip() for a in row["authors"].split(";") if a.strip()],
+            "journal": None, "center": row["center"] or None, "report_type": row["sti_type"] or None,
+            "pdf_url": row["pdf_url"] or None,
+            "keywords": [q.strip() for q in row["queries"].split("|") if q.strip()],
+            "abstract": abstract, "full_text": len(text_all) > max(len(abstract), 400) * 2,
             "word_count": len(text_all.split()),
-            "sections": p["sections"],
+            "sections": sections,
         }
         papers.append(paper)
-        chunks += chunk_sections(pid, [{"type": "ABSTRACT", "text": p["title"]}] + p["sections"] if not abstract else p["sections"])
+        chunks += chunk_sections(pid, sections)
 
     dups = mark_duplicates(papers)
-    print(f"[process] {dups} near-duplicate papers flagged (kept for browsing, excluded from findings)")
-    missing = [p["pmid"] for p in papers if p["pmid"] and not p["journal"]]
-    journals = fetch_journals(missing) if missing else {}
-    for p in papers:
-        if not p["journal"] and p["pmid"] in journals:
-            p["journal"] = journals[p["pmid"]]
-
+    print(f"[process] {dups} near-duplicate reports flagged (kept for browsing, excluded from findings)")
     (KB_DIR / "papers_raw.json").write_text(json.dumps(papers))
     with open(KB_DIR / "chunks.jsonl", "w") as f:
         for c in chunks:
             f.write(json.dumps(c) + "\n")
     ft = sum(p["full_text"] for p in papers)
-    print(f"[process] {len(papers)} papers ({ft} full text, {len(papers) - ft} abstract-only), {len(chunks)} chunks")
+    print(f"[process] {len(papers)} reports ({ft} full text, {len(papers) - ft} abstract-only), {len(chunks)} chunks")
 
 
 if __name__ == "__main__":

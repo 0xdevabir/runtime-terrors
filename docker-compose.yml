@@ -10,7 +10,7 @@ services:
       - path: backend/.env
         required: false
     environment:
-      SBA_CORS: http://localhost:3000
+      EMBER_CORS: http://localhost:3000
     volumes:
       - ./data/logs:/srv/data/logs   # audit + feedback logs survive restarts
     ports: ["8000:8000"]

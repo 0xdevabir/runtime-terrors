@@ -1,6 +1,6 @@
 """Hybrid retrieval: BM25 + dense vectors + knowledge-graph expansion, fused with RRF.
 
-Optional cross-encoder rerank (SBA_RERANK=1, fastembed ms-marco-MiniLM) over the top candidates.
+Optional cross-encoder rerank (EMBER_RERANK=1, fastembed ms-marco-MiniLM) over the top candidates.
 `mode` selects a baseline for evaluation: "bm25", "dense", "hybrid" (default) or "rerank".
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ STOP = set("""a an the of in on at to for and or but with without by from is are
 whom how why when where that this these those it its as into about than then there their them they we our you your can could should
 would may might will shall not no yes any all some more most less least very much many such effect effects affect affects study
 studies research known know tell show shows does doing between during under over after before within across""".split())
-RERANK_DEFAULT = os.environ.get("SBA_RERANK", "0") == "1"
+RERANK_DEFAULT = os.environ.get("EMBER_RERANK", "0") == "1"
 PLAIN = re.compile(r"^[A-Za-z][A-Za-z0-9 \-]{2,40}$")
 
 
@@ -30,7 +30,7 @@ def query_terms(q: str) -> list[str]:
 
 def query_entities(q: str) -> list[str]:
     ids = []
-    for t in ("stressor", "organism", "tissue", "outcome", "countermeasure", "gene"):
+    for t in ("condition", "fuel", "geometry", "outcome", "countermeasure", "species"):
         ids += [e.id for e, _ in O.find(t, q)]
     return ids
 
@@ -60,7 +60,7 @@ def coverage(text: str, terms: list[str]) -> float:
 def _passes(p: dict, c: dict, filters: dict) -> bool:
     if filters.get("study_type") and p["study_type"] not in filters["study_type"]:
         return False
-    for key, field in (("organism", "organisms"), ("stressor", "stressors"), ("tissue", "tissues")):
+    for key, field in (("fuel", "fuels"), ("condition", "conditions"), ("geometry", "geometries")):
         want = filters.get(key)
         if want:
             want = [want] if isinstance(want, str) else want
@@ -107,7 +107,7 @@ def _search(kb: KB, q: str, k: int, per_paper: int, filters: dict, mode: str) ->
     ranks: dict[int, float] = defaultdict(float)
     ents = query_entities(q)
     use_dense = mode in ("dense", "hybrid", "rerank") and kb.embedder is not None
-    # 1. lexical, with ontology-synonym expansion ("bone loss" also finds "osteopenia")
+    # 1. lexical, with ontology-synonym expansion ("flame spread" also finds "spread rate")
     if mode != "dense" or not use_dense:
         res, scores = kb.bm25.retrieve(bm25s.tokenize([expand_query(q, ents) if mode != "bm25" else q], stopwords="en",
                                                       show_progress=False), k=min(200, n), show_progress=False)

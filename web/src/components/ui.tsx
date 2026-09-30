@@ -168,7 +168,7 @@ export function Tag({ children, tone = "gray" }: { children: React.ReactNode; to
 }
 
 export function StudyTag({ type }: { type: string }) {
-  const tone = ({ flight: "blue", both: "purple", ground_analog: "teal", ground: "gray", review: "orange" } as const)[type as "flight"] ?? "gray";
+  const tone = ({ flight: "blue", both: "purple", short_ug: "teal", ground: "gray", computational: "green", review: "orange" } as const)[type as "flight"] ?? "gray";
   return <Tag tone={tone}>{STUDY_TYPE_LABEL[type] ?? type}</Tag>;
 }
 

@@ -20,7 +20,7 @@ const TIER: Record<MissionRisk["tier"], { label: string; color: string; icon: Ic
 };
 const DEFAULT_CUSTOM: MissionProfile = {
   name: "Custom mission", destination: "Mars", duration_days: 500, microgravity_days: 300, partial_gravity_days: 200,
-  dose_msv_per_day: 1.0, comm_delay_min: 10, crew: 4,
+  o2_percent: 30, pressure_kpa: 70.3, comm_delay_min: 10, crew: 4,
 };
 
 export default function MissionPage() {
@@ -54,7 +54,7 @@ function MissionView() {
   const prof = data?.profile;
 
   return (
-    <Page title="Mission Briefing" subtitle="Health risks for a mission profile, ranked by how exposed the crew would be and how uncertain the evidence still is."
+    <Page title="Mission Briefing" subtitle="Fire-safety risks for a mission profile, ranked by how exposed the vehicle would be and how uncertain the combustion evidence still is."
       trailing={<button onClick={() => window.print()} className="flex items-center gap-1 t-body btn-press" aria-label="Export PDF"><Icon name="printer" size={20} /><span className="hidden sm:inline">PDF</span></button>}
       toolbar={<Segmented value={preset} onChange={setP} options={[{ value: "iss", label: "ISS" }, { value: "artemis", label: "Artemis" }, { value: "mars", label: "Mars" }, { value: "custom", label: "Custom" }]} />}>
 
@@ -68,8 +68,8 @@ function MissionView() {
             {prof.blurb && <div className="t-sub opacity-90 mt-1 max-w-[600px]">{prof.blurb}</div>}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
               {[
-                [prof.duration_days, "days"], [data.total_dose_msv, "mSv total dose"],
-                [prof.partial_gravity_days, "days partial g"], [prof.comm_delay_min ? `${prof.comm_delay_min} min` : "—", "comm delay"],
+                [prof.duration_days, "days"], [`${data.atmosphere.o2_percent}%`, "cabin O₂"],
+                [`${data.atmosphere.pressure_kpa} kPa`, `cabin pressure · ${data.atmosphere.pressure_psia} psia`], [prof.partial_gravity_days, "days partial g"],
               ].map(([v, l]) => (
                 <div key={l as string} className="rounded-2xl bg-white/15 backdrop-blur px-3 py-2.5">
                   <div className="text-[22px] font-bold tabular-nums leading-none">{typeof v === "number" ? v.toLocaleString() : v}</div>
@@ -97,10 +97,10 @@ function MissionView() {
             ))}
           </div>
 
-          <Section header="How priority is computed" footer="Evidence comes only from the indexed publications. This is a research-prioritization aid, not a medical risk assessment.">
+          <Section header="How priority is computed" footer="Evidence comes only from the indexed NTRS reports. This is a research-prioritization aid, not a certified fire hazard analysis.">
             <div className="row block t-foot text-label-2 space-y-1.5">
-              <p><b className="text-label">Relevance</b> = hazard severity × how much of the relevant stressors this mission involves.</p>
-              <p><b className="text-label">Uncertainty</b> falls as evidence gets stronger, includes human data, and comes from spaceflight rather than ground analogs.</p>
+              <p><b className="text-label">Relevance</b> = hazard severity × how much of the relevant conditions (freefall, partial gravity, elevated O₂, reduced pressure) this mission involves.</p>
+              <p><b className="text-label">Uncertainty</b> falls as evidence gets stronger, tests real spacecraft materials, and comes from orbital burns rather than drop-tower or 1g tests.</p>
               <p><b className="text-label">Priority</b> = relevance × (½ + ½ × uncertainty) — high-exposure risks with weak evidence rise to the top.</p>
             </div>
           </Section>
@@ -132,7 +132,7 @@ function RiskCard({ r, rank, open, onToggle }: { r: MissionRisk; rank: number; o
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 t-foot text-label-2">
               <StrengthBadge s={r.evidence.strength} />
-              <span>{r.evidence.n_papers} papers · {r.evidence.n_flight} spaceflight · {r.evidence.n_human} human</span>
+              <span>{r.evidence.n_papers} reports · {r.evidence.n_flight} orbital · {r.evidence.n_material} spacecraft materials</span>
               {r.contradictions.length > 0 && <span className="inline-flex items-center gap-1"><Icon name="split" size={13} />{r.contradictions.length} conflicts</span>}
               {r.readiness && (
                 <span className="inline-flex items-center gap-1.5" title="Evidence readiness: transparent checklist, not a NASA readiness level">
@@ -169,7 +169,7 @@ function RiskCard({ r, rank, open, onToggle }: { r: MissionRisk; rank: number; o
                 <Link key={f.id} href={`/papers/${f.paper_id}`} className="block rounded-xl bg-fill p-3 pressable">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
                     <DirectionGlyph d={f.direction} /><StudyTag type={f.study_type} />
-                    <span className="t-cap text-label-2">{[f.labels.outcome, f.labels.organism, f.year].filter(Boolean).join(" · ")}</span>
+                    <span className="t-cap text-label-2">{[f.labels.outcome, f.labels.fuel, f.year].filter(Boolean).join(" · ")}</span>
                   </div>
                   <Quote>{f.evidence_quote}</Quote>
                 </Link>
@@ -203,10 +203,10 @@ function RiskCard({ r, rank, open, onToggle }: { r: MissionRisk; rank: number; o
             <ul className="list-disc pl-5 t-sub space-y-1 mb-4">{r.gaps.map((g) => <li key={g}>{g}</li>)}</ul>
           </>
         )}
-        {Object.keys(r.evidence.by_stressor).length > 0 && (
-          <div className="t-cap text-label-2">Evidence by stressor: {Object.entries(r.evidence.by_stressor).map(([k, v]) => `${label(k)} ${v}`).join(" · ")}</div>
+        {Object.keys(r.evidence.by_condition).length > 0 && (
+          <div className="t-cap text-label-2">Evidence by condition: {Object.entries(r.evidence.by_condition).map(([k, v]) => `${label(k)} ${v}`).join(" · ")}</div>
         )}
-        <Link href={`/ask?q=${encodeURIComponent(`What are the main findings about ${r.name.toLowerCase()} in spaceflight and which countermeasures work?`)}`}
+        <Link href={`/ask?q=${encodeURIComponent(`What are the main findings about ${r.name.toLowerCase()} in microgravity and which countermeasures work?`)}`}
           className="no-print inline-flex items-center gap-1.5 h-9 px-4 mt-4 rounded-full bg-tint text-white t-sub font-semibold btn-press">
           <Icon name="sparkles" size={15} />Ask about this risk
         </Link>
@@ -234,11 +234,12 @@ function CustomEditor({ p, onChange }: { p: MissionProfile; onChange: (p: Missio
   const sliders: { k: keyof MissionProfile; label: string; min: number; max: number; step: number; fmt: (v: number) => string }[] = [
     { k: "duration_days", label: "Duration", min: 7, max: 1200, step: 1, fmt: (v) => `${v} days` },
     { k: "partial_gravity_days", label: "Time on a surface (partial g)", min: 0, max: p.duration_days, step: 1, fmt: (v) => `${v} days` },
-    { k: "dose_msv_per_day", label: "Radiation dose rate", min: 0.1, max: 3, step: 0.05, fmt: (v) => `${v.toFixed(2)} mSv/day` },
+    { k: "o2_percent", label: "Cabin oxygen", min: 15, max: 40, step: 0.5, fmt: (v) => `${v}% O₂` },
+    { k: "pressure_kpa", label: "Cabin pressure", min: 50, max: 105, step: 0.5, fmt: (v) => `${v} kPa · ${(v / 6.895).toFixed(1)} psia` },
     { k: "comm_delay_min", label: "One-way communication delay", min: 0, max: 24, step: 0.5, fmt: (v) => `${v} min` },
   ];
   return (
-    <Section header="Mission profile" footer={`Microgravity time is the remainder: ${p.microgravity_days} days. Reference: ISS ≈ 0.5 mSv/day, deep space ≈ 1.1–1.8 mSv/day.`}>
+    <Section header="Mission profile" footer={`Microgravity time is the remainder: ${p.microgravity_days} days. Reference: ISS 21% O₂ at 101.3 kPa (14.7 psia); Artemis exploration atmosphere 34% O₂ at 56.5 kPa (8.2 psia).`}>
       <div className="row">
         <span className="flex-1 t-body">Destination</span>
         <Segmented size="sm" className="w-[220px]" value={p.destination} onChange={(v) => set("destination", v)} options={["LEO", "Moon", "Mars"].map((d) => ({ value: d, label: d }))} />

@@ -11,12 +11,12 @@ setup: ## Install backend (uv) and web (pnpm) dependencies
 	cd backend && uv sync --extra dense
 	cd web && pnpm install
 
-data: fetch process build ## Full pipeline: download papers -> process -> build KB (~40 min, mostly NCBI downloads)
+data: fetch process build ## Full pipeline: NTRS download -> process -> build KB (1-3 h, mostly the slow NTRS text server)
 
-fetch: ## Download full text for every PMCID in the CSV (BioC JSON, efetch XML fallback; resumable)
-	cd backend && uv run python -m pipeline.fetch
+fetch: ## Search NTRS for microgravity-combustion reports, then download their extracted text (resumable)
+	cd backend && uv run python -m pipeline.ntrs meta && uv run python -m pipeline.ntrs fulltext && uv run python -m pipeline.ntrs audit
 
-process: ## Parse full text into sections, passages, metadata
+process: ## Split NTRS report text into sections and passages, flag duplicate versions
 	cd backend && uv run python -m pipeline.process
 
 extract: ## Claude extraction + summaries via the Batch API (needs ANTHROPIC_API_KEY): submit, then `make collect`

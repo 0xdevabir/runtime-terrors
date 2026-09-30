@@ -1,7 +1,8 @@
 """NTRS (NASA Technical Reports Server) combustion literature dataset.
 
     uv run python -m pipeline.ntrs meta    # search API -> data/raw/ntrs/metadata/*.json -> data/processed/papers.csv
-    uv run python -m pipeline.ntrs pdfs    # download PDFs -> data/raw/ntrs/pdfs/<id>.pdf
+    uv run python -m pipeline.ntrs fulltext  # NTRS-extracted text -> data/raw/ntrs/fulltext/<id>.txt (used by process)
+    uv run python -m pipeline.ntrs pdfs    # download PDFs -> data/raw/ntrs/pdfs/<id>.pdf (large; optional)
     uv run python -m pipeline.ntrs text    # PDF text -> data/processed/text/<id>.txt
     uv run python -m pipeline.ntrs audit   # counts -> data/processed/ntrs_audit.json
     uv run python -m pipeline.ntrs all
@@ -15,7 +16,9 @@ import csv
 import json
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,6 +45,7 @@ MAX_PDF_BYTES = 1_000_000_000  # stop and ask before the PDF cache grows past 1 
 NTRS_DIR = RAW_DIR / "ntrs"
 META_DIR = NTRS_DIR / "metadata"
 PDF_DIR = NTRS_DIR / "pdfs"
+FULLTEXT_DIR = NTRS_DIR / "fulltext"
 FAIL_LOG = NTRS_DIR / "failures.log"
 PROC_DIR = DATA / "processed"
 TEXT_DIR = PROC_DIR / "text"
@@ -49,16 +53,19 @@ PAPERS_CSV = PROC_DIR / "papers.csv"
 AUDIT_JSON = PROC_DIR / "ntrs_audit.json"
 
 _last = 0.0
+_lock = threading.Lock()
+FULLTEXT_WORKERS = 6  # NTRS takes 10s-2min to serve one text file; overlap a few (request starts stay 1/s)
 
 
 def _get(client: httpx.Client, url: str, **kw) -> httpx.Response:
     """GET with a 1 req/s throttle and retries on network errors / 429 / 5xx."""
     global _last
     for attempt in range(5):
-        wait = DELAY - (time.monotonic() - _last)
-        if wait > 0:
-            time.sleep(wait)
-        _last = time.monotonic()
+        with _lock:  # paces request starts across threads
+            wait = DELAY - (time.monotonic() - _last)
+            if wait > 0:
+                time.sleep(wait)
+            _last = time.monotonic()
         try:
             r = client.get(url, **kw)
             if r.status_code == 429 or r.status_code >= 500:
@@ -172,7 +179,46 @@ def write_papers_csv(recs: dict[str, dict]) -> None:
     print(f"  wrote {PAPERS_CSV} ({len(recs)} unique records)")
 
 
-# ---------- 2. PDFs ----------
+# ---------- 2. full text ----------
+
+def _fulltext_link(rec: dict) -> str | None:
+    for d in rec.get("downloads") or []:
+        link = (d.get("links") or {}).get("fulltext")
+        if link:
+            return API + link
+    return None
+
+
+def fetch_fulltext(client: httpx.Client) -> None:
+    """NTRS serves its own extracted text per document: far smaller than the PDFs, and it covers scans."""
+    FULLTEXT_DIR.mkdir(parents=True, exist_ok=True)
+    todo = [(rid, link) for rid, r in sorted(load_records().items())
+            if (link := _fulltext_link(r)) and not (FULLTEXT_DIR / f"{rid}.txt").exists()]
+    done = 0
+
+    def one(item: tuple[str, str]) -> None:
+        nonlocal done
+        rid, url = item
+        out = FULLTEXT_DIR / f"{rid}.txt"
+        try:
+            r = _get(client, quote(url, safe=":/%"), follow_redirects=True, timeout=300)
+            if r.status_code != 200:
+                _log_failure(rid, url, f"fulltext HTTP {r.status_code}")
+                return
+            tmp = out.with_suffix(".part")
+            tmp.write_text(r.text)
+            tmp.rename(out)
+        except Exception as e:  # noqa: BLE001 - log and continue with the next document
+            _log_failure(rid, url, repr(e))
+        done += 1
+        if done % 25 == 0:
+            print(f"  fulltext {done}/{len(todo)}", flush=True)
+
+    with ThreadPoolExecutor(FULLTEXT_WORKERS) as pool:
+        list(pool.map(one, todo))
+
+
+# ---------- 3. PDFs ----------
 
 def fetch_pdfs(client: httpx.Client) -> None:
     PDF_DIR.mkdir(parents=True, exist_ok=True)
@@ -272,9 +318,11 @@ def main() -> None:
         if step in ("meta", "all"):
             fetch_meta(client)
             write_papers_csv(load_records())
-        if step in ("pdfs", "all"):
+        if step in ("fulltext", "all"):
+            fetch_fulltext(client)
+        if step == "pdfs":
             fetch_pdfs(client)
-    if step in ("text", "all"):
+    if step == "text":
         extract_text()
     if step in ("audit", "all"):
         audit()

@@ -8,17 +8,17 @@ import { useApi } from "@/lib/useApi";
 
 type TSeries = { key: string; label: string; total: number; counts: number[] };
 type Trends = { years: number[]; per_year: number[]; series: Record<string, TSeries[]>; study_type: Record<string, number[]>; novelty?: Novelty[] };
-type Dim = "stressor" | "organism_group" | "tissue";
+type Dim = "condition" | "fuel_group" | "geometry";
 
 const DIMS: { value: Dim; label: string }[] = [
-  { value: "stressor", label: "Stressors" }, { value: "organism_group", label: "Organisms" }, { value: "tissue", label: "Tissues" },
+  { value: "condition", label: "Conditions" }, { value: "fuel_group", label: "Fuels" }, { value: "geometry", label: "Geometries" },
 ];
 const MAX_SERIES = 6;
-const ST_ORDER = ["flight", "both", "ground_analog", "ground", "review"];
+const ST_ORDER = ["flight", "both", "short_ug", "ground", "computational", "review"];
 
 export default function TrendsPage() {
   const { data, error } = useApi<Trends>("/trends");
-  const [dim, setDim] = useState<Dim>("stressor");
+  const [dim, setDim] = useState<Dim>("condition");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<"count" | "cum">("count");
 
@@ -47,7 +47,7 @@ export default function TrendsPage() {
             <div className="bg-bg-2 rounded-2xl p-4 lg:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
-                  <div className="t-headline">Publications per year by {DIMS.find((d) => d.value === dim)!.label.toLowerCase()}</div>
+                  <div className="t-headline">Reports per year by {DIMS.find((d) => d.value === dim)!.label.toLowerCase()}</div>
                   <div className="t-foot text-label-2">Top {MAX_SERIES} by total · tap legend to hide</div>
                 </div>
                 <div className="flex gap-2">
@@ -60,14 +60,14 @@ export default function TrendsPage() {
               {data.years.at(-1)! >= 2025 && <div className="t-cap text-label-2 mt-2">The final year is partial — the corpus snapshot ends mid-year.</div>}
             </div>
             <div className="bg-bg-2 rounded-2xl p-4">
-              <div className="t-headline">All publications</div>
-              <div className="t-foot text-label-2 mb-4">{data.per_year.reduce((a, b) => a + b, 0)} papers, {data.years[0]}–{data.years.at(-1)}</div>
+              <div className="t-headline">All reports</div>
+              <div className="t-foot text-label-2 mb-4">{data.per_year.reduce((a, b) => a + b, 0)} reports, {data.years[0]}–{data.years.at(-1)}</div>
               <Columns labels={data.years.map((y) => `'${String(y).slice(2)}`)} values={data.per_year} height={220} />
             </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-x-6">
-            <Section header="Study design over time" footer="Share of each year's publications. Spaceflight = data from actual flight missions.">
+            <Section header="Study design over time" footer="Share of each year's reports. Orbital flight = burns on the Shuttle, ISS or Cygnus; drop tower / parabolic = seconds of freefall.">
               <div className="row block">
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
                   {ST_ORDER.map((k, i) => <span key={k} className="inline-flex items-center gap-1.5 t-foot text-label-2"><span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: `var(--series-${i + 1})` }} />{STUDY_TYPE_LABEL[k]}</span>)}
@@ -110,7 +110,7 @@ export default function TrendsPage() {
 
           {(data.novelty?.length ?? 0) > 0 && (
             <Section header="New findings that challenge the consensus"
-              footer="Recent papers reporting the opposite direction to an established majority. Worth a closer look: a new method, organism or duration can overturn older results.">
+              footer="Recent reports finding the opposite direction to an established majority. Worth a closer look: a new fuel, longer freefall time or better diagnostics can overturn older results.">
               {data.novelty!.slice(0, 10).map((n) => (
                 <Link key={n.paper_id + n.consensus_id} href={`/insights?id=${encodeURIComponent(n.consensus_id)}`} className="row pressable block">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">

@@ -2,8 +2,8 @@
 
 1. Draw a stratified sample of extracted findings into a CSV with empty label columns:
        uv run python -m eval.extraction sample --n 100
-2. A person fills `organism_ok`, `stressor_ok`, `tissue_ok`, `outcome_ok`, `direction_ok` with y / n
-   (leave blank when unsure) by reading `evidence_quote` against the paper.
+2. A person fills `fuel_ok`, `condition_ok`, `geometry_ok`, `outcome_ok`, `direction_ok` with y / n
+   (leave blank when unsure) by reading `evidence_quote` against the report.
 3. `run_eval` (or `uv run python -m eval.extraction score`) reports per-field precision.
 Labels must come from people: nothing here guesses them.
 """
@@ -19,7 +19,7 @@ from pipeline import ontology as O
 from pipeline.paths import KB_DIR
 
 LABELS = Path(__file__).parent / "extraction_labels.csv"
-FIELDS = ("organism", "stressor", "tissue", "outcome", "direction")
+FIELDS = ("fuel", "condition", "geometry", "outcome", "direction")
 
 
 def sample(n: int, seed: int = 7) -> None:
@@ -40,7 +40,7 @@ def sample(n: int, seed: int = 7) -> None:
         w.writerow(["finding_id", "paper_id", "paper_title", "evidence_quote", "method", *FIELDS, *(f"{x}_ok" for x in FIELDS), "notes"])
         for f in picked:
             w.writerow([f["id"], f["paper_id"], papers[f["paper_id"]]["title"], f["evidence_quote"], f.get("method"),
-                        lab(f.get("organism")), lab(f["stressor"]), lab(f.get("tissue")), lab(f["outcome"]), f["direction"],
+                        lab(f.get("fuel")), lab(f["condition"]), lab(f.get("geometry")), lab(f["outcome"]), f["direction"],
                         *[""] * len(FIELDS), ""])
     print(f"[extraction] wrote {len(picked)} findings to {LABELS} - fill the *_ok columns with y/n")
 

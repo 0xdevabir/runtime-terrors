@@ -11,9 +11,9 @@ import { useApi } from "@/lib/useApi";
 
 type Status = "contradictory" | "consensus" | "emerging";
 const INFO: Record<Status, { label: string; blurb: string; icon: "split" | "checkCircle" | "sparkles"; color: string }> = {
-  contradictory: { label: "Conflicts", icon: "split", color: "var(--red)", blurb: "Several papers report opposite effects for the same stressor and outcome. Each card lists the likely reasons — organism, duration, platform — so you can tell a real contradiction from a difference in setup." },
-  consensus: { label: "Consensus", icon: "checkCircle", color: "var(--green)", blurb: "Findings replicated across independent papers with most of them agreeing on direction." },
-  emerging: { label: "Emerging", icon: "sparkles", color: "var(--indigo)", blurb: "Effects seen in only a few papers so far — promising, not yet established." },
+  contradictory: { label: "Conflicts", icon: "split", color: "var(--red)", blurb: "Several reports find opposite effects for the same condition and outcome. Each card lists the likely reasons — fuel, freefall time, platform — so you can tell a real contradiction from a difference in setup." },
+  consensus: { label: "Consensus", icon: "checkCircle", color: "var(--green)", blurb: "Findings replicated across independent reports with most of them agreeing on direction." },
+  emerging: { label: "Emerging", icon: "sparkles", color: "var(--indigo)", blurb: "Effects seen in only a few reports so far — promising, not yet established." },
 };
 
 export default function InsightsPage() {
@@ -42,7 +42,7 @@ function Insights() {
         <div className="space-y-3">
           <Segmented value={status} onChange={setStatus}
             options={(Object.keys(INFO) as Status[]).map((s) => ({ value: s, label: <>{INFO[s].label}{counts[s] ? <span className="text-label-2 font-normal"> {counts[s]}</span> : null}</> }))} />
-          <SearchField value={q} onChange={setQ} placeholder="Filter by stressor, outcome, tissue" />
+          <SearchField value={q} onChange={setQ} placeholder="Filter by condition, outcome, geometry" />
         </div>
       }>
       <p className="t-foot text-label-2 mb-4 flex gap-2"><span style={{ color: INFO[status].color }}><Icon name={INFO[status].icon} size={16} /></span>{INFO[status].blurb}</p>
@@ -109,7 +109,7 @@ function Detail({ id }: { id: string }) {
               );
             })}
           </div>
-          <div className="t-cap2 text-label-3 mt-2">Cumulative papers per direction by publication year.</div>
+          <div className="t-cap2 text-label-3 mt-2">Cumulative reports per direction by publication year.</div>
         </div>
       )}
 
@@ -122,21 +122,21 @@ function Detail({ id }: { id: string }) {
 
       <div className="flex gap-2 mb-6">
         <Link href={`/ask?q=${encodeURIComponent(q)}`} className="flex-1 h-11 rounded-xl bg-tint text-white t-headline grid place-items-center btn-press">Ask about this</Link>
-        <Link href={`/graph?focus=${encodeURIComponent(c.outcome)}&lit=${encodeURIComponent([c.stressor, c.outcome, c.tissue].filter(Boolean).join(","))}`}
+        <Link href={`/graph?focus=${encodeURIComponent(c.outcome)}&lit=${encodeURIComponent([c.condition, c.outcome, c.geometry].filter(Boolean).join(","))}`}
           className="h-11 px-4 rounded-xl bg-fill text-tint t-headline grid place-items-center btn-press">Graph</Link>
       </div>
 
       {sides.map(([dir, items]) => (
         <div key={dir} className="mb-6">
-          <div className="section-header flex items-center gap-2"><DirectionGlyph d={dir} /><span>· {items.length} paper{items.length > 1 ? "s" : ""}</span></div>
+          <div className="section-header flex items-center gap-2"><DirectionGlyph d={dir} /><span>· {items.length} report{items.length > 1 ? "s" : ""}</span></div>
           <div className="space-y-2">
             {items.map((s) => (
               <Link key={s.paper_id + s.quote.slice(0, 20)} href={`/papers/${s.paper_id}`} className="block bg-bg-2 rounded-2xl p-3.5 pressable">
                 <Quote>{s.quote}</Quote>
                 <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                   <StudyTag type={s.study_type} />
-                  {s.organism && <Tag>{label(s.organism)}</Tag>}
-                  {s.duration_days != null && <Tag>{s.duration_days} days</Tag>}
+                  {s.fuel && <Tag>{label(s.fuel)}</Tag>}
+                  {s.duration_seconds != null && <Tag>{s.duration_seconds < 120 ? `${s.duration_seconds} s` : `${Math.round(s.duration_seconds / 60)} min`} freefall</Tag>}
                   <span className="t-cap text-label-2">{s.year}</span>
                 </div>
                 <div className="t-cap text-label-2 mt-1.5 line-clamp-1">{s.title}</div>
@@ -145,7 +145,7 @@ function Detail({ id }: { id: string }) {
           </div>
         </div>
       ))}
-      <p className="t-cap text-label-2">Directions: {Object.entries(DIRECTION_LABEL).map(([, v]) => v).join(" / ")} relative to controls, as stated in each paper.</p>
+      <p className="t-cap text-label-2">Directions: {Object.entries(DIRECTION_LABEL).map(([, v]) => v).join(" / ")} relative to normal gravity or the stated baseline, as reported in each study.</p>
     </div>
   );
 }

@@ -15,4 +15,4 @@ body:
     validations: {required: true}
   - type: input
     id: papers
-    attributes: {label: PMCIDs involved, placeholder: "PMC1234567, PMC7654321"}
+    attributes: {label: NTRS IDs involved, placeholder: "20170001234, 19960045678"}

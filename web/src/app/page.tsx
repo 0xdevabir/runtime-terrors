@@ -45,7 +45,7 @@ export default function Home() {
   const p = PERSONAS.find((x) => x.id === persona)!;
 
   return (
-    <Page title="Emberfall" subtitle={<>AI-powered fire safety insights from microgravity combustion data — ask, explore, and see where the evidence is strong, conflicting, or missing across {s ? s.papers : "NASA"} publications.</>}>
+    <Page title="Emberfall" subtitle={<>AI-powered fire safety insights from microgravity combustion data — ask, explore, and see where the evidence is strong, conflicting, or missing across {s ? s.papers.toLocaleString() : "NASA"} NTRS reports.</>}>
       {/* Ask bar */}
       <form onSubmit={(e) => { e.preventDefault(); go(q); }}
         className="flex items-center gap-2 bg-bg-2 rounded-2xl pl-4 pr-2 h-14 shadow-[var(--shadow)] mb-3">
@@ -77,10 +77,10 @@ export default function Home() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {s ? (
           <>
-            <Stat icon="books" value={s.papers} label={`publications · ${s.full_text} full text`} color="var(--orange)" />
+            <Stat icon="books" value={s.papers} label={`NTRS reports · ${s.full_text} full text`} color="var(--orange)" />
             <Stat icon="quote" value={s.findings.toLocaleString()} label="evidence-quoted findings" color="var(--indigo)" />
             <Stat icon="split" value={s.contradictions} label="open contradictions" color="var(--red)" />
-            <Stat icon="database" value={s.osdr_linked} label="linked to flight datasets" color="var(--teal)" />
+            <Stat icon="database" value={s.experiment_linked} label="tied to named flight experiments" color="var(--teal)" />
           </>
         ) : Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-bg-2 rounded-2xl p-4 space-y-3"><Skeleton h={22} w={22} /><Skeleton h={28} w="50%" /><Skeleton h={12} /></div>)}
       </div>
@@ -90,7 +90,7 @@ export default function Home() {
         <Section header="Where studies disagree" footer={<Link className="text-tint" href="/insights">See all contradictions</Link>}>
           {s?.contradictions_preview.map((c) => (
             <Row key={c.id} href={`/insights?id=${encodeURIComponent(c.id)}`} icon="split" iconBg="var(--red)" title={c.label}
-              subtitle={`${c.n_papers} papers · ${Object.entries(c.votes).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(" · ")}`} />
+              subtitle={`${c.n_papers} reports · ${Object.entries(c.votes).map(([k, v]) => `${v} ${k.replace("_", " ")}`).join(" · ")}`} />
           )) ?? <div className="row"><Skeleton h={14} /></div>}
         </Section>
 
@@ -107,9 +107,9 @@ export default function Home() {
       <div className="section-header">Mission briefings</div>
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
-          { id: "iss", t: "ISS", d: "180 days · LEO", g: "linear-gradient(145deg,#30b0c7,#007aff)" },
-          { id: "artemis", t: "Artemis", d: "45 days · Moon", g: "linear-gradient(145deg,#8e8e93,#48484a)" },
-          { id: "mars", t: "Mars", d: "~1000 days", g: "linear-gradient(145deg,#ff9500,#ff3b30)" },
+          { id: "iss", t: "ISS", d: "21% O₂ · 14.7 psia", g: "linear-gradient(145deg,#30b0c7,#007aff)" },
+          { id: "artemis", t: "Artemis", d: "34% O₂ · 8.2 psia · 0.16 g", g: "linear-gradient(145deg,#8e8e93,#48484a)" },
+          { id: "mars", t: "Mars", d: "~1000 days · 0.38 g", g: "linear-gradient(145deg,#ff9500,#ff3b30)" },
         ].map((m) => (
           <Link key={m.id} href={`/mission?preset=${m.id}`} className="rounded-2xl p-4 text-white btn-press min-h-[104px] flex flex-col justify-between" style={{ background: m.g }}>
             <Icon name="rocket" size={22} />

@@ -65,16 +65,16 @@ class KB:
 
     def paper_card(self, pid: str) -> dict:
         p = self.paper[pid]
-        return {k: p.get(k) for k in ("id", "title", "year", "journal", "url", "doi", "study_type", "organisms", "stressors",
-                                      "platforms", "tissues", "osdr_ids", "full_text", "n_findings", "sample_size", "missions",
-                                      "duplicate_of")} | {
+        return {k: p.get(k) for k in ("id", "title", "year", "journal", "center", "report_type", "url", "doi", "study_type",
+                                      "fuels", "conditions", "platforms", "geometries", "experiments", "full_text", "n_findings",
+                                      "n_tests", "missions", "duration", "duplicate_of")} | {
             "key_finding": p["summary"]["key_finding"], "authors": p["authors"][:3], "n_authors": len(p["authors"])}
 
     def finding_card(self, fid: str) -> dict:
         f = self.finding[fid]
         p = self.paper[f["paper_id"]]
         return {**f, "paper_title": p["title"], "paper_url": p["url"], "labels": {
-            k: self.label(f.get(k)) for k in ("organism", "stressor", "tissue", "outcome", "countermeasure")}}
+            k: self.label(f.get(k)) for k in ("fuel", "condition", "geometry", "outcome", "countermeasure")}}
 
 
 _kb: KB | None = None

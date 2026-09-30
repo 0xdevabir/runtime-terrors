@@ -1,14 +1,23 @@
-"""Canonical vocabularies for space-biology entities.
+"""Canonical vocabularies for microgravity-combustion and fire-safety entities.
 
 Every entity has a stable id, a display label, a group and a list of regex
 synonyms. Both the rule-based extractor and the LLM normaliser map raw strings
 onto these ids, so "weightlessness", "micro-gravity" and "µg" all become
-`stressor:microgravity_flight`.
+`condition:microgravity`.
 
-Where a standard ontology exists we record its id (NCBI Taxonomy, UBERON, GO).
-Stressors have no good public ontology, so we define a small hierarchy that
-separates *real spaceflight* from *ground analogs* - a distinction that matters
-scientifically and that the UI surfaces everywhere ("flight only" toggle).
+Entity types:
+  fuel            what burns (PMMA, cotton-fiberglass, n-heptane droplets, ethylene ...)
+  condition       the environment it burns in (gravity level, O2, pressure, flow, heating)
+  platform        where the test ran (ISS, drop tower, parabolic aircraft, 1g lab, model)
+  geometry        fuel / flame configuration (thin sheet, droplet, wire, jet flame ...)
+  outcome         what was measured (spread rate, extinction limit, soot, ...)
+  countermeasure  fire-safety measure (detection, extinguishers, material screening ...)
+  species         chemical species / diagnostics (CO, HCN, soot particulates, OH* ...)
+
+Where a standard identifier exists we record it (PubChem CID for pure chemicals).
+Platforms carry the distinction that matters most scientifically and that the UI
+surfaces everywhere: *orbital flight* (long-duration freefall) vs *short-duration
+microgravity* (drop towers, parabolic flights, sounding rockets) vs *1g ground* tests.
 """
 from __future__ import annotations
 
@@ -38,249 +47,224 @@ def E(type_, key, label, group, patterns, ontology=None, implied=None):
     return Entity(f"{type_}:{key}", type_, label, group, patterns, ontology, implied or {})
 
 
-# ----------------------------------------------------------------------------- organisms
-ORGANISMS = [
-    E("organism", "human", "Human", "Human", [r"humans?", r"astronauts?", r"cosmonauts?", r"crew ?members?", r"participants", r"subjects", r"twins? study", r"homo sapiens"], "NCBITaxon:9606"),
-    E("organism", "human_cells", "Human cells (in vitro)", "Cell culture", [r"human (?:\w+ )?cells?", r"HUVECs?", r"lymphocytes", r"fibroblasts", r"keratinocytes", r"osteoblasts?", r"iPSC-?CMs?", r"cardiomyocytes", r"mesenchymal stem cells", r"MSCs?"], None),
-    E("organism", "mouse", "Mouse", "Rodent", [r"mice", r"mouse", r"murine", r"mus musculus", r"C57BL/?6J?", r"BALB/c"], "NCBITaxon:10090"),
-    E("organism", "rat", "Rat", "Rodent", [r"rats?", r"rattus", r"sprague[- ]dawley", r"wistar"], "NCBITaxon:10116"),
-    E("organism", "primate", "Non-human primate", "Other animal", [r"rhesus", r"macaques?", r"monkeys?", r"non-human primates?"], "NCBITaxon:9544"),
-    E("organism", "zebrafish", "Zebrafish", "Other animal", [r"zebrafish", r"danio rerio"], "NCBITaxon:7955"),
-    E("organism", "medaka", "Medaka", "Other animal", [r"medaka", r"oryzias latipes"], "NCBITaxon:8090"),
-    E("organism", "xenopus", "Xenopus", "Other animal", [r"xenopus"], "NCBITaxon:8355"),
-    E("organism", "newt", "Newt", "Other animal", [r"newts?", r"pleurodeles"], None),
-    E("organism", "drosophila", "Fruit fly", "Other animal", [r"drosophila", r"fruit fl(?:y|ies)"], "NCBITaxon:7227"),
-    E("organism", "c_elegans", "C. elegans", "Other animal", [r"c\. ?elegans", r"caenorhabditis", r"nematodes?"], "NCBITaxon:6239"),
-    E("organism", "tardigrade", "Tardigrade", "Other animal", [r"tardigrades?"], None),
-    E("organism", "planarian", "Planarian", "Other animal", [r"planarians?", r"dugesia", r"schmidtea"], None),
-    E("organism", "squid", "Bobtail squid", "Other animal", [r"euprymna", r"bobtail squid", r"squid"], None),
-    E("organism", "arabidopsis", "Arabidopsis", "Plant", [r"arabidopsis", r"thale cress"], "NCBITaxon:3702"),
-    E("organism", "brassica", "Brassica", "Plant", [r"brassica", r"mizuna", r"mustard"], None),
-    E("organism", "rice", "Rice", "Plant", [r"rice", r"oryza sativa"], "NCBITaxon:4530"),
-    E("organism", "wheat", "Wheat", "Plant", [r"wheat", r"triticum"], None),
-    E("organism", "lettuce", "Lettuce", "Plant", [r"lettuce", r"lactuca"], None),
-    E("organism", "tomato", "Tomato", "Plant", [r"tomato(?:es)?", r"solanum lycopersicum"], None),
-    E("organism", "moss", "Moss", "Plant", [r"physcomitrella", r"physcomitrium", r"moss"], None),
-    E("organism", "fern", "Fern (Ceratopteris)", "Plant", [r"ceratopteris", r"fern spores?"], None),
-    E("organism", "algae", "Algae", "Plant", [r"chlamydomonas", r"microalgae", r"euglena", r"algae"], None),
-    E("organism", "e_coli", "E. coli", "Microbe", [r"e\. ?coli", r"escherichia coli"], "NCBITaxon:562"),
-    E("organism", "b_subtilis", "Bacillus", "Microbe", [r"b\. ?subtilis", r"bacillus(?: \w+)?"], "NCBITaxon:1423"),
-    E("organism", "s_aureus", "Staphylococcus", "Microbe", [r"s\. ?aureus", r"staphylococcus(?: \w+)?"], None),
-    E("organism", "salmonella", "Salmonella", "Microbe", [r"salmonella(?: \w+)?", r"s\. ?typhimurium"], None),
-    E("organism", "pseudomonas", "Pseudomonas", "Microbe", [r"pseudomonas(?: \w+)?", r"p\. ?aeruginosa"], None),
-    E("organism", "streptococcus", "Streptococcus", "Microbe", [r"streptococcus(?: \w+)?", r"s\. ?mutans"], None),
-    E("organism", "klebsiella", "Klebsiella / Enterobacter", "Microbe", [r"klebsiella", r"enterobacter(?: \w+)?"], None),
-    E("organism", "yeast", "Yeast", "Microbe", [r"yeast", r"saccharomyces", r"s\. ?cerevisiae", r"candida albicans"], "NCBITaxon:4932"),
-    E("organism", "fungi", "Filamentous fungi", "Microbe", [r"aspergillus(?: \w+)?", r"fungi", r"fungal", r"penicillium"], None),
-    E("organism", "microbiome", "Microbial community", "Microbe", [r"microbiome", r"microbiota", r"microbial communit(?:y|ies)", r"metagenom\w*"], None),
-    E("organism", "virus", "Virus", "Microbe", [r"virus(?:es)?", r"viral reactivation", r"herpesvirus", r"EBV", r"VZV"], None),
+MU = r"(?:µ|μ|u)g"  # "µg" written with the micro sign, the Greek mu or a plain u
+
+# ----------------------------------------------------------------------------- fuels
+FUELS = [
+    E("fuel", "pmma", "PMMA (acrylic)", "Solid", [r"PMMA", r"poly ?\(?methyl ?methacrylate\)?", r"plexiglas+", r"acrylic(?: sheets?| slabs?| rods?)?"]),
+    E("fuel", "cellulose", "Paper / cellulose", "Solid",
+      [r"(?:ashless |filter |tissue |thin |kimwipe )paper", r"paper (?:sheets?|samples?|fuels?|strips?)", r"cellulos\w*", r"kimwipes?"]),
+    E("fuel", "cotton_fiberglass", "Cotton-fiberglass fabric (SIBAL)", "Spacecraft material",
+      [r"SIBAL", r"cotton[- /]fiber ?glass", r"cotton[- /]fibre ?glass", r"fiberglass[- /]cotton"]),
+    E("fuel", "fabric", "Fabrics & textiles (Nomex, cotton)", "Spacecraft material",
+      [r"nomex", r"fabrics?", r"textiles?", r"cotton", r"clothing", r"garments?"]),
+    E("fuel", "wire_insulation", "Wire insulation (PTFE, ETFE, polyethylene)", "Spacecraft material",
+      [r"wire insulation", r"insulated wires?", r"PTFE", r"teflon", r"ETFE", r"tefzel", r"kapton", r"polyimide", r"cable insulation"]),
+    E("fuel", "polyethylene", "Polyethylene / polyolefins", "Solid", [r"polyethylene", r"LDPE", r"HDPE", r"polypropylene", r"polyolefins?"]),
+    E("fuel", "polymer", "Other polymers (Delrin, polycarbonate ...)", "Solid",
+      [r"delrin", r"polyoxymethylene", r"POM", r"polycarbonate", r"polystyrene", r"nylon", r"epoxy", r"silicone", r"thermoplastics?", r"polymers?", r"plastics?"]),
+    E("fuel", "foam", "Polyurethane foam", "Solid", [r"polyurethane(?: foam)?", r"open-cell foam", r"foam (?:samples?|fuels?)"]),
+    E("fuel", "candle", "Candle / paraffin wax", "Solid", [r"candles?", r"paraffin(?: wax)?", r"wax"]),
+    E("fuel", "metal", "Metals (Al, Mg, Ti, Fe)", "Solid",
+      [r"metals? (?:combustion|burning|flammability)", r"alumin(?:i)?um", r"magnesium", r"titanium", r"iron rods?", r"steel"]),
+    E("fuel", "heptane", "n-Heptane", "Liquid", [r"n-?heptane", r"heptane"], "PubChem:8900"),
+    E("fuel", "alkane", "Larger alkanes (decane, dodecane ...)", "Liquid",
+      [r"n-?decane", r"decane", r"n-?dodecane", r"dodecane", r"hexadecane", r"n-?octane", r"iso-?octane", r"alkanes?"]),
+    E("fuel", "alcohol", "Alcohols (methanol, ethanol)", "Liquid", [r"methanol", r"ethanol", r"propanol", r"butanol", r"alcohols?"]),
+    E("fuel", "jet_fuel", "Practical liquid fuels (kerosene, JP-8, diesel)", "Liquid",
+      [r"kerosene", r"JP-?\d+", r"jet fuels?", r"diesel", r"biodiesel", r"biofuels?", r"liquid fuels?", r"fuel blends?"]),
+    E("fuel", "methane", "Methane", "Gas", [r"methane", r"CH4", r"natural gas"], "PubChem:297"),
+    E("fuel", "ethylene", "Ethylene", "Gas", [r"ethylene", r"C2H4"], "PubChem:6325"),
+    E("fuel", "propane", "Propane", "Gas", [r"propane", r"C3H8"], "PubChem:6334"),
+    E("fuel", "hydrogen", "Hydrogen", "Gas", [r"hydrogen(?! (?:cyanide|chloride|fluoride))", r"H2"], "PubChem:783"),
+    E("fuel", "other_gas", "Other gaseous fuels (ethane, butane, acetylene)", "Gas", [r"ethane", r"butane", r"acetylene", r"gaseous fuels?"]),
 ]
 
-# ----------------------------------------------------------------------------- stressors
-STRESSORS = [
-    E("stressor", "microgravity_flight", "Spaceflight microgravity", "Flight",
-      [r"space ?flights?", r"microgravity", r"micro-gravity", r"weightlessness", r"orbital flight", r"space environment",
-       r"international space station", r"ISS", r"in space", r"flight animals", r"space-flown", r"flown"]),
-    E("stressor", "simulated_microgravity", "Simulated microgravity (analog)", "Ground analog",
-      [r"simulated microgravity", r"hind ?limb (?:unloading|suspension)", r"hindlimb-unloaded", r"HLU", r"HU mice",
-       r"clinostats?", r"clinorotation", r"random positioning machine", r"RPM", r"rotating wall vessel", r"RWV",
-       r"head-down (?:tilt )?bed rest", r"bed rest", r"HDBR", r"dry immersion", r"unloading", r"diamagnetic levitation"]),
-    E("stressor", "space_radiation", "Space / ionizing radiation", "Radiation",
-      [r"ionizing radiation", r"space radiation", r"cosmic radiation", r"galactic cosmic rays?", r"GCR", r"HZE",
-       r"heavy[- ]ions?", r"high-LET", r"(?:56)?Fe (?:ions?|particles?)", r"iron ions?", r"protons? (?:irradiation|radiation)",
-       r"gamma[- ]?(?:rays?|radiation|irradiation)", r"X-?ray irradiation", r"solar particle events?", r"irradiat(?:ion|ed)", r"radiation exposure"]),
-    E("stressor", "hypergravity", "Hypergravity", "Gravity",
-      [r"hypergravity", r"centrifugation", r"\d(?:\.\d)? ?g centrifug\w*", r"high[- ]g"]),
-    E("stressor", "partial_gravity", "Partial gravity (Moon / Mars)", "Gravity",
-      [r"partial (?:gravity|weight ?bearing)", r"lunar gravity", r"martian gravity", r"mars gravity", r"0\.38 ?g", r"0\.16 ?g", r"1/6 ?g"]),
-    E("stressor", "isolation", "Isolation & confinement", "Behavioral",
-      [r"isolation and confinement", r"isolated,? confined", r"confinement", r"social isolation", r"mars-?500", r"HERA", r"antarctic\w*", r"analog missions?"]),
-    E("stressor", "atmosphere", "Altered atmosphere (O₂ / CO₂)", "Environment",
-      [r"hypoxi[ac]", r"hypercapni[ac]", r"elevated CO2", r"carbon dioxide", r"hyperoxi[ac]"]),
-    E("stressor", "circadian", "Circadian / sleep disruption", "Behavioral",
-      [r"circadian (?:disruption|misalignment)", r"sleep (?:loss|deprivation|restriction)", r"light[- ]dark cycles?", r"shift ?work"]),
-    E("stressor", "hypomagnetic", "Hypomagnetic field", "Environment",
-      [r"hypomagnetic", r"geomagnetic field", r"magnetic field"]),
+# ----------------------------------------------------------------------------- conditions (environment)
+CONDITIONS = [
+    E("condition", "microgravity", "Microgravity (freefall)", "Gravity",
+      [r"micro-?gravity", MU, r"weightless\w*", r"zero[- ]?g(?:ravity)?", r"0[- ]?g", r"reduced[- ]gravity", r"low[- ]gravity",
+       r"free[- ]?fall", r"buoyancy[- ]free", r"non-?buoyant", r"in space", r"on[- ]orbit", r"spacecraft environment"]),
+    E("condition", "normal_gravity", "Normal gravity (1g)", "Gravity",
+      [r"normal[- ]gravity", r"1[- ]?g", r"earth gravity", r"terrestrial gravity", r"buoyant (?:flames?|flow|convection)", r"natural convection"]),
+    E("condition", "partial_gravity", "Partial gravity (Moon / Mars)", "Gravity",
+      [r"partial[- ]gravity", r"lunar gravity", r"martian gravity", r"mars gravity", r"0\.38 ?g", r"0\.16 ?g", r"1/6 ?g", r"lunar", r"martian"]),
+    E("condition", "hypergravity", "Elevated gravity (> 1g)", "Gravity", [r"hypergravity", r"super-?gravity", r"centrifuge"]),
+    E("condition", "elevated_o2", "Elevated oxygen (O₂-enriched)", "Atmosphere",
+      [r"oxygen[- ]enriched", r"enriched[- ]oxygen", r"elevated oxygen", r"high(?:er)? oxygen", r"pure oxygen",
+       r"(?:2[5-9]|[3-9]\d|100)(?:\.\d)? ?% ?(?:O2|O₂|oxygen)", r"exploration atmospheres?", r"hyperoxi[ac]"]),
+    E("condition", "reduced_pressure", "Reduced pressure", "Atmosphere",
+      [r"reduced (?:ambient |total )?pressures?", r"low(?:er)? (?:ambient |total )?pressures?", r"sub-?atmospheric", r"8\.2 ?psia?",
+       r"10\.2 ?psia?", r"56\.5 ?kPa", r"70 ?kPa", r"hypobaric"]),
+    E("condition", "elevated_pressure", "Elevated pressure / supercritical", "Atmosphere",
+      [r"high[- ]pressures?", r"elevated (?:ambient )?pressures?", r"supercritical", r"super-?atmospheric"]),
+    E("condition", "diluent", "Diluent / inert gas (N₂, CO₂, He)", "Atmosphere",
+      [r"diluents?", r"dilution", r"inert gas(?:es)?", r"helium", r"argon", r"xenon", r"sulfur hexafluoride", r"SF6", r"nitrogen[- ]diluted", r"CO2[- ]diluted"]),
+    E("condition", "opposed_flow", "Opposed / forced flow", "Flow",
+      [r"opposed[- ]flow", r"opposing flow", r"forced (?:flow|convection|air ?flow)", r"flow velocit(?:y|ies)", r"air ?flow", r"ventilation flow", r"imposed flow"]),
+    E("condition", "concurrent_flow", "Concurrent (flow-assisted) flow", "Flow",
+      [r"con-?current[- ]flow", r"co-?current", r"concurrent", r"flow-assisted", r"wind-aided"]),
+    E("condition", "quiescent", "Quiescent (no flow)", "Flow", [r"quiescent", r"no[- ]flow", r"stagnant", r"still air"]),
+    E("condition", "radiant_heating", "External radiant heating", "Heating",
+      [r"external (?:radiant )?(?:heat flux|heating|radiation)", r"radiant heat(?:er|ing|s)?", r"imposed (?:radiant )?heat flux", r"irradiance", r"radiant flux"]),
 ]
 
-# ----------------------------------------------------------------------------- platforms / missions
+# ----------------------------------------------------------------------------- platforms (where the test ran)
 PLATFORMS = [
-    E("platform", "iss", "International Space Station", "Flight", [r"international space station", r"ISS"]),
-    E("platform", "shuttle", "Space Shuttle", "Flight", [r"space shuttle", r"STS-?\d+"]),
-    E("platform", "bion", "Bion / Foton", "Flight", [r"bion-?m ?1?", r"bion", r"foton(?:-m\d)?"]),
-    E("platform", "rodent_research", "Rodent Research (ISS)", "Flight", [r"rodent research(?:-\d+)?", r"RR-\d+"]),
-    E("platform", "twins", "NASA Twins Study", "Flight", [r"twins? study"]),
-    E("platform", "spacelab", "Spacelab / SLS", "Flight", [r"spacelab", r"SLS-\d"]),
-    E("platform", "mir", "Mir", "Flight", [r"mir space station", r"\bmir\b"]),
-    E("platform", "tiangong", "Chinese station / Shenzhou", "Flight", [r"tiangong", r"shenzhou", r"SJ-10", r"shijian"]),
-    E("platform", "commercial", "Commercial / short-duration flight", "Flight", [r"inspiration4", r"spacex", r"axiom"]),
-    E("platform", "parabolic", "Parabolic flight / sounding rocket", "Short microgravity", [r"parabolic flights?", r"sounding rockets?", r"drop tower"]),
-    E("platform", "hindlimb", "Hindlimb unloading", "Ground analog", [r"hind ?limb (?:unloading|suspension)", r"hindlimb-unloaded", r"HLU"]),
-    E("platform", "bedrest", "Head-down bed rest", "Ground analog", [r"head-down (?:tilt )?bed rest", r"bed rest", r"HDBR"]),
-    E("platform", "clinostat", "Clinostat / RPM / RWV", "Ground analog", [r"clinostats?", r"clinorotation", r"random positioning machine", r"rotating wall vessel", r"RWV", r"RPM"]),
-    E("platform", "nsrl", "NASA Space Radiation Laboratory", "Ground analog", [r"NSRL", r"NASA space radiation laborator\w*", r"brookhaven"]),
-    E("platform", "isolation_analog", "Isolation analog (HERA / Mars-500 / Antarctica)", "Ground analog", [r"HERA", r"mars-?500", r"antarctic\w*", r"concordia"]),
+    E("platform", "iss", "International Space Station", "Orbital flight",
+      [r"international space station", r"ISS", r"combustion integrated rack", r"CIR", r"microgravity science glovebox", r"MSG"]),
+    E("platform", "shuttle", "Space Shuttle / Spacelab", "Orbital flight", [r"space shuttle", r"shuttle", r"STS-?\d+", r"spacelab", r"USML-?\d", r"MSL-?1"]),
+    E("platform", "cygnus", "Uncrewed vehicle (Cygnus, Saffire)", "Orbital flight",
+      [r"cygnus", r"un(?:crewed|manned) (?:vehicle|spacecraft|resupply)", r"cargo (?:vehicle|spacecraft)", r"saffire"]),
+    E("platform", "mir", "Mir", "Orbital flight", [r"mir space station", r"mir"]),
+    E("platform", "other_orbital", "Other orbital (Shijian, Foton, Kibo)", "Orbital flight",
+      [r"shijian", r"SJ-10", r"tiangong", r"foton", r"kibo", r"JEM", r"orbital experiments?"]),
+    E("platform", "sounding_rocket", "Sounding rocket", "Short-duration µg", [r"sounding rockets?", r"suborbital", r"TEXUS", r"MASER", r"MAXUS"]),
+    E("platform", "parabolic", "Parabolic-flight aircraft", "Short-duration µg",
+      [r"parabolic (?:flights?|aircraft|trajector(?:y|ies)|maneuvers?)", r"KC-?135", r"DC-?9", r"reduced[- ]gravity aircraft", r"zero-?g aircraft",
+       r"learjet", r"airbus A300", r"aircraft (?:tests?|experiments?)"]),
+    E("platform", "drop_tower", "Drop tower / drop tube", "Short-duration µg",
+      [r"drop (?:towers?|tubes?|shafts?|facilit(?:y|ies)|tests?|experiments?)", r"2\.2[- ]?s(?:ec(?:ond)?)?", r"5\.18?[- ]?s(?:ec(?:ond)?)?",
+       r"zero[- ]gravity research facility", r"ZGRF", r"ZARM", r"JAMIC", r"MGLAB", r"bremen"]),
+    E("platform", "ground_lab", "1g laboratory apparatus", "Ground (1g)",
+      [r"normal[- ]gravity (?:tests?|experiments?)", r"ground[- ]based (?:tests?|experiments?)", r"laboratory (?:tests?|experiments?)",
+       r"narrow[- ]channel apparatus", r"NCA", r"wind tunnel", r"combustion tunnel"]),
+    E("platform", "std_6001", "NASA-STD-6001 flammability test", "Ground (1g)",
+      [r"NASA-?STD-?6001\w*", r"NHB ?8060\.1\w*", r"upward flammability", r"test ?1 (?:upward|flammability)", r"white sands test facility", r"WSTF"]),
+    E("platform", "calorimeter", "Cone calorimeter / FIST / LIFT", "Ground (1g)",
+      [r"cone calorimeters?", r"FIST", r"forced-flow ignition and flame[- ]spread test", r"LIFT apparatus", r"FAA (?:tests?|burner)"]),
+    E("platform", "model", "Numerical model / simulation", "Computational",
+      [r"numerical (?:simulations?|models?|stud(?:y|ies)|results|predictions)", r"computational fluid dynamics", r"CFD", r"direct numerical simulations?",
+       r"fire dynamics simulator", r"FDS", r"(?:asymptotic|analytical|theoretical) (?:models?|analys[ie]s)"]),
 ]
 
-# ----------------------------------------------------------------------------- tissues / systems
-TISSUES = [
-    E("tissue", "bone", "Bone / skeleton", "Musculoskeletal", [r"bones?", r"skeletal system", r"femur", r"tibia", r"pelvi[cs]", r"trabecular", r"cortical bone", r"osteo\w+"], "UBERON:0002481"),
-    E("tissue", "muscle", "Skeletal muscle", "Musculoskeletal", [r"skeletal muscles?", r"muscles?", r"soleus", r"gastrocnemius", r"quadriceps", r"myofib\w+", r"myotubes?"], "UBERON:0001134"),
-    E("tissue", "cartilage", "Cartilage / joints / spine", "Musculoskeletal", [r"cartilage", r"intervertebral discs?", r"spine", r"tendons?"], None),
-    E("tissue", "heart", "Heart / cardiovascular", "Cardiovascular", [r"heart", r"cardiac", r"cardiovascular", r"cardiomyocytes?", r"arter(?:y|ies|ial)", r"vascular", r"endothelial", r"aorta"], "UBERON:0004535"),
-    E("tissue", "blood", "Blood / hematopoiesis", "Immune & blood", [r"blood", r"erythrocytes?", r"red blood cells", r"hematopoie\w+", r"bone marrow", r"plasma"], None),
-    E("tissue", "immune", "Immune system", "Immune & blood", [r"immune", r"immunity", r"T[- ]cells?", r"B[- ]cells?", r"macrophages?", r"thymus", r"spleen", r"leukocytes?", r"lymphocytes?", r"NK cells?", r"cytokines?"], "UBERON:0002405"),
-    E("tissue", "brain", "Brain / CNS", "Nervous system", [r"brain", r"central nervous system", r"CNS", r"hippocamp\w+", r"cortex", r"neurons?", r"neural", r"cerebr\w+"], "UBERON:0000955"),
-    E("tissue", "eye", "Eye / retina", "Nervous system", [r"eyes?", r"retina\w*", r"ocular", r"optic nerve", r"SANS", r"choroid"], "UBERON:0000970"),
-    E("tissue", "vestibular", "Vestibular / sensorimotor", "Nervous system", [r"vestibular", r"inner ear", r"sensorimotor", r"otolith\w*"], None),
-    E("tissue", "liver", "Liver", "Metabolic", [r"liver", r"hepat\w+"], "UBERON:0002107"),
-    E("tissue", "kidney", "Kidney", "Metabolic", [r"kidneys?", r"renal"], "UBERON:0002113"),
-    E("tissue", "adipose", "Adipose tissue", "Metabolic", [r"adipose", r"fat tissue", r"adipocytes?"], None),
-    E("tissue", "gut", "Gut / GI tract", "Metabolic", [r"gut", r"intestin\w+", r"colon", r"gastrointestinal", r"fecal"], "UBERON:0001555"),
-    E("tissue", "skin", "Skin", "Other tissue", [r"skin", r"dermal", r"epiderm\w+", r"wound"], "UBERON:0002097"),
-    E("tissue", "lung", "Lung", "Other tissue", [r"lungs?", r"pulmonary"], "UBERON:0002048"),
-    E("tissue", "reproductive", "Reproductive system", "Other tissue", [r"testis", r"testes", r"ovar(?:y|ies|ian)", r"sperm\w*", r"oocytes?", r"reproductive", r"embryos?", r"embryonic"], None),
-    E("tissue", "stem_cells", "Stem cells", "Other tissue", [r"stem cells?", r"progenitor cells?", r"pluripotent"], None),
-    E("tissue", "root", "Root", "Plant tissue", [r"roots?", r"root tips?", r"root hairs?"], None),
-    E("tissue", "shoot", "Shoot / leaf", "Plant tissue", [r"shoots?", r"leaf", r"leaves", r"hypocotyls?", r"seedlings?", r"chloroplasts?"], None),
-    E("tissue", "seed", "Seed / germination", "Plant tissue", [r"seeds?", r"germination", r"flowering"], None),
-    E("tissue", "cell_wall", "Cell wall", "Plant tissue", [r"cell walls?", r"lignin"], None),
-    E("tissue", "biofilm", "Biofilm", "Microbial", [r"biofilms?"], None),
+# ----------------------------------------------------------------------------- geometries (fuel / flame configuration)
+GEOMETRIES = [
+    E("geometry", "thin_sheet", "Thin sheet / film", "Solid configuration",
+      [r"thin (?:solid )?(?:fuels?|sheets?|samples?|films?)", r"thermally thin", r"sheets?", r"films?"]),
+    E("geometry", "thick_slab", "Thick slab / block", "Solid configuration",
+      [r"thick (?:solid )?(?:fuels?|slabs?|samples?|sheets?)", r"thermally thick", r"slabs?", r"blocks?"]),
+    E("geometry", "rod", "Cylinder / rod", "Solid configuration",
+      [r"cylind\w+ (?:fuels?|rods?|samples?)", r"rods?", r"cylinders?"]),
+    E("geometry", "wire", "Wire / cable", "Solid configuration", [r"wires?", r"electrical wires?", r"cables?", r"harness(?:es)?"]),
+    E("geometry", "porous", "Porous fuel (smolder)", "Solid configuration",
+      [r"porous (?:fuels?|media|materials?|beds?)", r"packed beds?", r"foams?"]),
+    E("geometry", "droplet", "Isolated droplet / droplet array", "Liquid configuration",
+      [r"droplets?", r"fuel drops?", r"drop combustion", r"droplet arrays?"]),
+    E("geometry", "spray", "Spray / particle cloud", "Liquid configuration",
+      [r"sprays?", r"particle clouds?", r"dust clouds?", r"aerosols?", r"mists?"]),
+    E("geometry", "pool", "Pool / liquid layer", "Liquid configuration", [r"pools?", r"pool fires?", r"liquid layers?", r"fuel pools?"]),
+    E("geometry", "candle_wick", "Candle / wick", "Liquid configuration", [r"candles?", r"wicks?"]),
+    E("geometry", "jet_flame", "Gas-jet diffusion flame", "Gas flame",
+      [r"(?:gas[- ])?jet (?:diffusion )?flames?", r"laminar diffusion flames?", r"co-?flow(?:ing)? (?:flames?|burners?)", r"burke-schumann",
+       r"diffusion flames?", r"burners?"]),
+    E("geometry", "spherical", "Spherical / porous-sphere flame", "Gas flame",
+      [r"spherical (?:burners?|flames?|diffusion flames?)", r"porous[- ]spheres?", r"spherical symmetry"]),
+    E("geometry", "counterflow", "Counterflow / stagnation-point flame", "Gas flame",
+      [r"counter-?flow", r"opposed[- ]jets?", r"stagnation[- ]point", r"stagnation (?:region|flow)"]),
+    E("geometry", "premixed", "Premixed flame / flame ball", "Gas flame",
+      [r"premixed (?:flames?|gas(?:es)?|mixtures?)", r"flame balls?", r"premixed"]),
 ]
 
-# ----------------------------------------------------------------------------- outcomes (processes / phenotypes)
+# ----------------------------------------------------------------------------- outcomes (what was measured)
 OUTCOMES = [
-    E("outcome", "bone_mass", "Bone mass / density", "Structure",
-      [r"bone (?:mineral )?density", r"bone loss", r"bone mass", r"BMD", r"osteopenia", r"bone volume", r"trabecular (?:thickness|number)", r"bone formation"],
-      "GO:0046849", implied={"bone loss": "decrease", "osteopenia": "decrease"}),
-    E("outcome", "muscle_mass", "Muscle mass / function", "Structure",
-      [r"muscle atrophy", r"atrophy", r"muscle mass", r"muscle (?:strength|function|force)", r"fiber (?:size|cross-sectional area)", r"muscle wasting", r"sarcopenia"],
-      "GO:0014889", implied={"muscle atrophy": "decrease", "atrophy": "decrease", "muscle wasting": "decrease", "sarcopenia": "decrease"}),
-    E("outcome", "oxidative_stress", "Oxidative stress", "Cellular stress",
-      [r"oxidative stress", r"reactive oxygen species", r"ROS", r"lipid peroxidation", r"antioxidant (?:capacity|enzymes?)", r"NRF2", r"Nrf2"], "GO:0006979"),
-    E("outcome", "dna_damage", "DNA damage & repair", "Cellular stress",
-      [r"DNA damage", r"DNA repair", r"double[- ]strand breaks?", r"γ-?H2AX", r"gamma-?H2AX", r"chromosom\w+ aberrations?", r"genomic instability", r"mutations?"], "GO:0006974"),
-    E("outcome", "inflammation", "Inflammation", "Immune",
-      [r"inflammat\w+", r"pro-inflammatory", r"IL-?6", r"IL-?1β?", r"TNF-?α?", r"NF-?κB", r"NF-?kB"], "GO:0006954"),
-    E("outcome", "immune_function", "Immune function", "Immune",
-      [r"immune (?:function|response|dysregulation|suppression|dysfunction)", r"immunosuppress\w+", r"T[- ]cell activation", r"viral reactivation", r"antibod(?:y|ies)"], "GO:0006955"),
-    E("outcome", "gene_expression", "Gene expression / transcriptome", "Molecular",
-      [r"gene expression", r"transcriptom\w+", r"differentially expressed genes", r"DEGs?", r"RNA-?seq", r"transcripts?"], "GO:0010467"),
-    E("outcome", "epigenetic", "Epigenetics / methylation", "Molecular",
-      [r"DNA methylation", r"epigenetic\w*", r"histone modifications?", r"microRNAs?", r"miRNAs?"], None),
-    E("outcome", "telomere", "Telomere length", "Molecular", [r"telomeres?", r"telomere length"], None),
-    E("outcome", "apoptosis", "Apoptosis / cell death", "Cell fate", [r"apoptosis", r"apoptotic", r"cell death", r"caspase-?\d?"], "GO:0006915"),
-    E("outcome", "proliferation", "Proliferation / cell cycle", "Cell fate", [r"proliferation", r"cell cycle", r"cell growth", r"p21", r"CDKN1A", r"cell division"], "GO:0008283"),
-    E("outcome", "differentiation", "Differentiation / regeneration", "Cell fate", [r"differentiation", r"regenerat\w+", r"stemness", r"self-renewal"], "GO:0030154"),
-    E("outcome", "senescence", "Senescence / aging", "Cell fate", [r"senescen\w+", r"aging", r"ageing"], None),
-    E("outcome", "mitochondria", "Mitochondrial function", "Metabolism", [r"mitochondri\w+", r"oxidative phosphorylation", r"OXPHOS", r"ATP production"], "GO:0007005"),
-    E("outcome", "metabolism", "Metabolism (lipid / glucose)", "Metabolism",
-      [r"metabolism", r"metabolic", r"lipid\w*", r"glucose", r"insulin (?:resistance|sensitivity)", r"fatty acids?", r"cholesterol"], "GO:0008152"),
-    E("outcome", "cognition", "Cognition / behavior", "Neuro",
-      [r"cognit\w+", r"behavio(?:u)?r\w*", r"memory", r"learning", r"anxiety", r"neurobehavio\w+", r"performance deficits?"], None),
-    E("outcome", "vision", "Vision / ocular structure", "Neuro", [r"visual (?:acuity|impairment)", r"optic disc edema", r"SANS", r"intraocular pressure", r"retinal (?:thickness|damage)"], None),
-    E("outcome", "circadian_rhythm", "Circadian rhythm / sleep", "Neuro", [r"circadian rhythms?", r"clock genes?", r"sleep"], "GO:0007623"),
-    E("outcome", "cardio_function", "Cardiovascular function", "Physiology",
-      [r"cardiac (?:function|output|atrophy|remodeling)", r"blood pressure", r"orthostatic intolerance", r"arterial stiffness", r"vascular (?:function|remodeling)", r"heart rate"], None),
-    E("outcome", "fluid_shift", "Fluid shift", "Physiology", [r"fluid shifts?", r"headward fluid", r"cephalad"], None),
-    E("outcome", "virulence", "Virulence", "Microbial", [r"virulence", r"pathogenicity", r"infectivity"], None),
-    E("outcome", "antibiotic_resistance", "Antimicrobial resistance", "Microbial", [r"antibiotic resistance", r"antimicrobial resistance", r"drug resistance", r"resistance to antibiotics"], None),
-    E("outcome", "biofilm_formation", "Biofilm formation", "Microbial", [r"biofilm formation", r"biofilms?"], None),
-    E("outcome", "microbiome_composition", "Microbiome composition", "Microbial", [r"microbial (?:diversity|composition)", r"dysbiosis", r"relative abundance", r"alpha diversity"], None),
-    E("outcome", "plant_growth", "Plant growth & development", "Plant",
-      [r"plant growth", r"root growth", r"root length", r"biomass", r"growth rate", r"seed production", r"photosynthe\w+"], None),
-    E("outcome", "gravitropism", "Gravitropism / gravity sensing", "Plant", [r"gravitrop\w+", r"gravity sensing", r"gravisens\w+", r"statoliths?", r"auxin"], "GO:0009630"),
-    E("outcome", "cytoskeleton", "Cytoskeleton / cell shape", "Cellular", [r"cytoskelet\w+", r"actin", r"microtubules?", r"cell morphology", r"cell shape"], "GO:0007010"),
-    E("outcome", "calcium", "Calcium signaling", "Cellular", [r"calcium signal\w+", r"Ca2\+", r"calcium"], None),
-    E("outcome", "stress_response", "Stress response (heat shock / UPR)", "Cellular stress",
-      [r"stress response", r"heat shock proteins?", r"HSPs?", r"unfolded protein response", r"ER stress"], "GO:0033554"),
-    E("outcome", "wound_healing", "Wound healing", "Physiology", [r"wound healing", r"tissue repair"], None),
-    E("outcome", "cancer_risk", "Carcinogenesis / tumor risk", "Cellular stress", [r"carcinogen\w+", r"tumou?r\w*", r"cancer risk", r"oncogen\w+", r"cancer"], None),
-    E("outcome", "reproduction", "Reproduction / development", "Physiology", [r"fertility", r"embryonic development", r"spermatogenesis", r"reproduct\w+ success", r"development"], None),
+    E("outcome", "flame_spread", "Flame spread rate", "Flame behavior",
+      [r"flame[- ]spread\w*", r"spread rates?", r"flame propagation", r"spread velocit(?:y|ies)", r"flame front (?:velocity|speed)"]),
+    E("outcome", "extinction", "Extinction / flammability limit", "Limits",
+      [r"extinction", r"blow-?off", r"quench\w*", r"flammability (?:limits?|boundar(?:y|ies)|maps?|diagrams?)",
+       r"limiting oxygen (?:index|concentration)", r"LOI", r"LOC", r"MOC", r"minimum oxygen concentration", r"self-extinguish\w*"]),
+    E("outcome", "flammability", "Material flammability", "Limits", [r"flammab\w+", r"combustib\w+", r"fire hazard\w*"]),
+    E("outcome", "ignition", "Ignition delay / energy", "Ignition",
+      [r"ignit\w*", r"auto-?ignition", r"ignition (?:delay|time|energy|temperature)"]),
+    E("outcome", "cool_flame", "Cool flames / low-temperature chemistry", "Ignition",
+      [r"cool[- ]flames?", r"low[- ]temperature (?:chemistry|combustion|oxidation)", r"NTC", r"negative temperature coefficient", r"two-stage ignition"]),
+    E("outcome", "burning_rate", "Burning / mass-loss rate", "Flame behavior",
+      [r"burn(?:ing)? rates?", r"mass[- ](?:loss|burning) rates?", r"regression rates?", r"burning (?:rate )?constants?", r"d\^?2[- ]law", r"burning velocit(?:y|ies)"]),
+    E("outcome", "flame_temp", "Flame temperature", "Thermal",
+      [r"flame temperatures?", r"temperature (?:fields?|profiles?|distributions?)", r"peak temperatures?", r"adiabatic flame"]),
+    E("outcome", "heat_release", "Heat release rate", "Thermal", [r"heat release(?: rates?)?", r"HRR", r"heat of combustion"]),
+    E("outcome", "radiation", "Radiative heat loss", "Thermal",
+      [r"radiative (?:heat )?(?:loss(?:es)?|transfer|emission|feedback|flux)", r"radiation (?:loss(?:es)?|heat transfer)", r"radiant (?:loss(?:es)?|emission)"]),
+    E("outcome", "soot", "Soot formation / smoke yield", "Emissions",
+      [r"soot\w*", r"smoke (?:yield|production|point|particles?)", r"smoke", r"luminosity", r"luminous"]),
+    E("outcome", "toxic_products", "Toxic products / combustion gases", "Emissions",
+      [r"toxic\w*", r"combustion products", r"products of combustion", r"off-?gas\w*", r"pyrolysis products", r"post-?fire atmosphere"]),
+    E("outcome", "flame_shape", "Flame shape / size / standoff", "Flame behavior",
+      [r"flame (?:shape|size|length|height|standoff|stand-off|geometry|radius|diameter|width|structure)", r"standoff ratio"]),
+    E("outcome", "oscillation", "Flame oscillation / instability", "Flame behavior",
+      [r"oscillat\w+", r"instabilit(?:y|ies)", r"flicker\w*", r"pulsat\w+", r"cellular flames?", r"flamelets?", r"fingering"]),
+    E("outcome", "smoldering", "Smoldering / smolder-to-flame transition", "Flame behavior",
+      [r"smoulder\w*", r"smolder\w*", r"transition to flaming", r"glowing combustion"]),
+    E("outcome", "pyrolysis", "Pyrolysis / material degradation", "Material response",
+      [r"pyroly\w+", r"thermal (?:decomposition|degradation)", r"charring", r"char (?:yield|layer|formation)", r"melting", r"dripping"]),
+    E("outcome", "microexplosion", "Micro-explosion / disruptive burning", "Flame behavior",
+      [r"micro-?explosions?", r"disruptive burning", r"droplet (?:disruption|breakup)", r"puffing"]),
+    E("outcome", "suppression", "Suppression / extinguishment", "Fire response",
+      [r"(?:fire|flame) suppression", r"suppression (?:agents?|systems?|effectiveness|tests?)", r"suppressants?",
+       r"extinguish(?:ment|ers?|ing agents?)", r"(?:fire|flame)s? (?:was |were )?extinguished", r"fire ?fighting"]),
+    E("outcome", "detection", "Smoke / fire detectability", "Fire response",
+      [r"detection (?:time|threshold|performance)", r"detectab\w+", r"particle size distributions?", r"smoke characteri[sz]ation"]),
 ]
 
-# ----------------------------------------------------------------------------- countermeasures
+# ----------------------------------------------------------------------------- countermeasures (fire-safety measures)
 COUNTERMEASURES = [
-    E("countermeasure", "exercise", "Exercise (resistive / aerobic)", "Physical", [r"exercise", r"resistive training", r"ARED", r"treadmill", r"cycle ergometer", r"physical training"]),
-    E("countermeasure", "artificial_gravity", "Artificial gravity", "Physical", [r"artificial gravity", r"(?:short-arm |onboard )?centrifug\w+ (?:as|countermeasure)", r"1 ?g centrifuge"]),
-    E("countermeasure", "vibration", "Vibration / mechanical loading", "Physical", [r"vibration", r"mechanical (?:loading|stimulation)", r"reloading"]),
-    E("countermeasure", "bisphosphonate", "Bisphosphonates", "Pharmacological", [r"bisphosphonates?", r"zoledron\w+", r"alendronate", r"risedronate"]),
-    E("countermeasure", "rankl_inhibitor", "RANKL / sclerostin inhibition", "Pharmacological", [r"RANKL (?:inhibit\w+|antibod\w+|blockade)", r"denosumab", r"sclerostin antibod\w+", r"OPG-?Fc", r"romosozumab"]),
-    E("countermeasure", "myostatin", "Myostatin / activin inhibition", "Pharmacological", [r"myostatin (?:inhibit\w+|antibod\w+)", r"activin", r"ACVR2B", r"follistatin"]),
-    E("countermeasure", "antioxidant", "Antioxidants", "Nutritional", [r"antioxidants?", r"N-acetyl ?cysteine", r"NAC", r"vitamin [CE]", r"catalase over-?expression", r"resveratrol", r"CDDO"]),
-    E("countermeasure", "nutrition", "Nutrition / supplements", "Nutritional", [r"diet(?:ary)?", r"nutrition\w*", r"supplement\w*", r"vitamin D", r"omega-3", r"probiotics?", r"fiber-rich"]),
-    E("countermeasure", "shielding", "Radiation shielding", "Engineering", [r"shielding", r"polyethylene"]),
-    E("countermeasure", "radioprotector", "Radioprotective drugs", "Pharmacological", [r"radioprotect\w+", r"amifostine", r"radiomitigat\w+"]),
-    E("countermeasure", "lbnp", "Lower-body negative pressure", "Physical", [r"lower[- ]body negative pressure", r"LBNP", r"thigh cuffs?"]),
-    E("countermeasure", "melatonin", "Melatonin / lighting", "Behavioral", [r"melatonin", r"lighting countermeasure", r"light therapy"]),
-    E("countermeasure", "hormone", "Hormonal therapy", "Pharmacological", [r"testosterone", r"growth hormone", r"IGF-?1 (?:treatment|administration)", r"estrogen (?:treatment|replacement)"]),
+    E("countermeasure", "detection", "Smoke / fire detection", "Detection",
+      [r"(?:smoke|fire|gas|ionization|photoelectric) (?:detect\w+|sensors?|alarms?)", r"detectors?", r"early (?:fire )?warning", r"combustion product monitor\w*"]),
+    E("countermeasure", "co2_extinguisher", "CO₂ extinguisher", "Suppression",
+      [r"CO2 (?:extinguish\w+|suppress\w+|agent)", r"carbon dioxide (?:extinguish\w+|suppress\w+|agent)", r"portable fire extinguishers?", r"PFE"]),
+    E("countermeasure", "water_mist", "Water mist / water spray", "Suppression",
+      [r"water[- ]mist", r"fine water (?:sprays?|mists?)", r"water-based (?:suppression|extinguish\w+)", r"PWFE", r"water sprays?"]),
+    E("countermeasure", "foam_agent", "Foam agent", "Suppression", [r"foam (?:extinguish\w+|agents?)", r"aqueous film", r"AFFF"]),
+    E("countermeasure", "inert_agent", "Inert / halon / chemical agents", "Suppression",
+      [r"halons?", r"nitrogen (?:suppression|flooding|inerting)", r"inert(?:ing)? (?:agents?|suppression)", r"clean agents?", r"FM-?200", r"chemical suppressants?", r"inerting"]),
+    E("countermeasure", "depressurization", "Depressurization / venting", "Suppression", [r"depressuri[sz]\w+", r"venting", r"vent(?:ed)? to vacuum"]),
+    E("countermeasure", "vent_shutdown", "Ventilation shutdown", "Response",
+      [r"ventilation (?:shut ?down|off|shut-?off)", r"turn(?:ing)? off (?:the )?(?:ventilation|fans?)", r"fans? (?:shut ?down|off)"]),
+    E("countermeasure", "material_selection", "Material selection / screening", "Prevention",
+      [r"materials? (?:selection|screening|acceptance|testing|control)", r"flame[- ]retardan\w+", r"fire[- ](?:resistant|retardant)", r"non-?flammable materials?",
+       r"NASA-?STD-?6001\w*"]),
+    E("countermeasure", "low_o2_atmosphere", "Lower-O₂ / normoxic cabin atmosphere", "Prevention",
+      [r"(?:lower|reduced) oxygen (?:atmospheres?|concentrations?|levels?)", r"normoxic", r"oxygen control"]),
+    E("countermeasure", "ppe", "Crew masks / PPE", "Response", [r"masks?", r"respirators?", r"emergency breathing", r"PBA", r"protective equipment"]),
+    E("countermeasure", "cleanup", "Post-fire cleanup / filtration", "Recovery",
+      [r"post-?fire (?:clean-?up|recovery)", r"clean-?up", r"filtration", r"filters?", r"scrubb\w+", r"smoke eaters?", r"air purification"]),
 ]
 
-# ----------------------------------------------------------------------------- genes / pathways worth a node
-GENES = [
-    E("gene", "cdkn1a", "CDKN1A / p21", "Cell cycle", [r"CDKN1a", r"p21(?:Cip1|WAF1)?"]),
-    E("gene", "tp53", "TP53 / p53", "Cell cycle", [r"TP53", r"p53", r"Trp53"]),
-    E("gene", "rankl", "RANKL / OPG", "Bone remodeling", [r"RANKL", r"Tnfsf11", r"osteoprotegerin", r"OPG"]),
-    E("gene", "sost", "Sclerostin (SOST)", "Bone remodeling", [r"sclerostin", r"SOST"]),
-    E("gene", "mstn", "Myostatin (MSTN)", "Muscle", [r"myostatin", r"MSTN"]),
-    E("gene", "foxo", "FOXO", "Muscle", [r"FOXO\d?\w?", r"atrogin-?1", r"MuRF-?1", r"Fbxo32", r"Trim63"]),
-    E("gene", "mtor", "mTOR / IGF-1 / Akt", "Growth signaling", [r"mTOR\w*", r"IGF-?1", r"Akt", r"PI3K"]),
-    E("gene", "nrf2", "NRF2 / KEAP1", "Oxidative stress", [r"NRF2", r"Nfe2l2", r"KEAP1"]),
-    E("gene", "hif1a", "HIF-1α", "Hypoxia", [r"HIF-?1α?", r"HIF1A"]),
-    E("gene", "nfkb", "NF-κB", "Inflammation", [r"NF-?κB", r"NF-?kB", r"NFKB1"]),
-    E("gene", "tgfb", "TGF-β", "Growth signaling", [r"TGF-?β\d?", r"TGF-?beta", r"TGFB1"]),
-    E("gene", "wnt", "Wnt / β-catenin", "Growth signaling", [r"Wnt\w*", r"β-catenin", r"beta-catenin"]),
-    E("gene", "hsp", "Heat shock proteins", "Stress response", [r"HSP\d+\w?", r"heat shock proteins?"]),
-    E("gene", "pgc1a", "PGC-1α", "Mitochondria", [r"PGC-?1α", r"PGC-?1alpha", r"Ppargc1a"]),
-    E("gene", "clock", "Clock genes (Per / Bmal1)", "Circadian", [r"Bmal1", r"Arntl", r"Per[12]", r"Cry[12]", r"Clock gene\w*"]),
-    E("gene", "il6", "IL-6", "Inflammation", [r"IL-?6", r"interleukin-?6"]),
-    E("gene", "tnf", "TNF-α", "Inflammation", [r"TNF-?α", r"TNF-alpha", r"tumou?r necrosis factor"]),
-    E("gene", "auxin", "Auxin signaling (PIN / ARF)", "Plant signaling", [r"PIN[1-7]", r"auxin transport\w*", r"ARF\d+"]),
-    E("gene", "hfq", "Hfq (bacterial regulator)", "Microbial", [r"Hfq"]),
+# ----------------------------------------------------------------------------- chemical species / diagnostics
+SPECIES = [
+    E("species", "co", "Carbon monoxide (CO)", "Toxic gas", [r"carbon monoxide", r"CO"], "PubChem:281"),
+    E("species", "co2", "Carbon dioxide (CO₂)", "Major product", [r"carbon dioxide", r"CO2", r"CO₂"], "PubChem:280"),
+    E("species", "hcn", "Hydrogen cyanide (HCN)", "Toxic gas", [r"HCN", r"hydrogen cyanide"], "PubChem:768"),
+    E("species", "acid_gas", "Acid gases (HCl, HF, COF₂)", "Toxic gas",
+      [r"HCl", r"HF", r"hydrogen (?:chloride|fluoride)", r"acid gas(?:es)?", r"COF2", r"carbonyl fluoride"]),
+    E("species", "particulate", "Soot particulates / PM", "Particulate",
+      [r"soot particles?", r"particulates?", r"PM ?2\.5", r"smoke particles?", r"primary particles?", r"aggregates?"]),
+    E("species", "oh", "OH* / CH* chemiluminescence", "Radical diagnostic", [r"OH\*?", r"hydroxyl", r"CH\*", r"chemiluminescen\w+"]),
+    E("species", "nox", "Nitrogen oxides (NOx)", "Toxic gas", [r"NOx", r"nitric oxide", r"NO2", r"nitrogen oxides?"]),
+    E("species", "radicals", "Radicals / chain chemistry", "Kinetics", [r"radicals?", r"chain[- ]branching", r"chemical kinetics", r"reaction mechanisms?"]),
+    E("species", "pah", "PAHs (soot precursors)", "Particulate", [r"PAHs?", r"polycyclic aromatic\w*", r"soot precursors?"]),
+    E("species", "o2_consumption", "Oxygen consumption", "Major product", [r"oxygen consumption", r"O2 consumption", r"oxygen depletion"]),
 ]
 
-ALL_ENTITIES: list[Entity] = ORGANISMS + STRESSORS + PLATFORMS + TISSUES + OUTCOMES + COUNTERMEASURES + GENES
-
-# Cross-references for entries defined without one (NCBITaxon, UBERON, PO, CL, GO, MeSH, HGNC).
-# Only unambiguous mappings; umbrella entries (e.g. "Algae", "Clock genes") deliberately stay unmapped.
-EXTRA_IDS = {
-    "organism:tardigrade": "NCBITaxon:42241", "organism:squid": "NCBITaxon:6613", "organism:brassica": "NCBITaxon:3705",
-    "organism:wheat": "NCBITaxon:4565", "organism:lettuce": "NCBITaxon:4236", "organism:tomato": "NCBITaxon:4081",
-    "organism:fern": "NCBITaxon:49495", "organism:s_aureus": "NCBITaxon:1279", "organism:salmonella": "NCBITaxon:590",
-    "organism:pseudomonas": "NCBITaxon:286", "organism:streptococcus": "NCBITaxon:1301", "organism:virus": "NCBITaxon:10239",
-    "stressor:microgravity_flight": "MESH:D018474", "stressor:simulated_microgravity": "MESH:D018767",
-    "stressor:space_radiation": "MESH:D003358",
-    "tissue:cartilage": "UBERON:0002418", "tissue:blood": "UBERON:0000178", "tissue:adipose": "UBERON:0001013",
-    "tissue:reproductive": "UBERON:0000990", "tissue:stem_cells": "CL:0000034", "tissue:root": "PO:0009005",
-    "tissue:shoot": "PO:0009006", "tissue:seed": "PO:0009010", "tissue:cell_wall": "GO:0005618",
-    "outcome:telomere": "GO:0000781", "outcome:senescence": "GO:0090398", "outcome:antibiotic_resistance": "GO:0046677",
-    "outcome:biofilm_formation": "GO:0042710", "outcome:calcium": "GO:0019722", "outcome:wound_healing": "GO:0042060",
-    "outcome:cancer_risk": "MESH:D063646", "outcome:reproduction": "GO:0000003",
-    "countermeasure:exercise": "MESH:D015444", "countermeasure:bisphosphonate": "MESH:D004164",
-    "countermeasure:antioxidant": "MESH:D000975", "countermeasure:melatonin": "MESH:D008550",
-    "countermeasure:lbnp": "MESH:D008165", "countermeasure:radioprotector": "MESH:D011837",
-    "gene:cdkn1a": "HGNC:1784", "gene:tp53": "HGNC:11998", "gene:rankl": "HGNC:11926", "gene:sost": "HGNC:13771",
-    "gene:mstn": "HGNC:4223", "gene:mtor": "HGNC:3942", "gene:nrf2": "HGNC:7782", "gene:hif1a": "HGNC:4910",
-    "gene:nfkb": "HGNC:7794", "gene:tgfb": "HGNC:11766", "gene:wnt": "HGNC:2514", "gene:pgc1a": "HGNC:9237",
-    "gene:il6": "HGNC:6018", "gene:tnf": "HGNC:11892",
-}
-for _e in ALL_ENTITIES:
-    _e.ontology = _e.ontology or EXTRA_IDS.get(_e.id)
+ALL_ENTITIES: list[Entity] = FUELS + CONDITIONS + PLATFORMS + GEOMETRIES + OUTCOMES + COUNTERMEASURES + SPECIES
 
 BY_ID = {e.id: e for e in ALL_ENTITIES}
 BY_TYPE: dict[str, list[Entity]] = {}
 for _e in ALL_ENTITIES:
     BY_TYPE.setdefault(_e.type, []).append(_e)
 
-FLIGHT_STRESSOR = "stressor:microgravity_flight"
-ANALOG_STRESSOR = "stressor:simulated_microgravity"
+ENTITY_TYPES = ("fuel", "condition", "platform", "geometry", "outcome", "countermeasure", "species")
+MICROGRAVITY = "condition:microgravity"
+NORMAL_GRAVITY = "condition:normal_gravity"
+PARTIAL_GRAVITY = "condition:partial_gravity"
+ORBITAL, SHORT_UG, GROUND, MODEL = "Orbital flight", "Short-duration µg", "Ground (1g)", "Computational"
 
 # ----------------------------------------------------------------------------- direction cues
-INCREASE = re.compile(r"\b(?:increas\w*|elevat\w*|up-?regulat\w*|enhanc\w*|higher|greater|induc\w*|promot\w*|accelerat\w*|augment\w*|stimulat\w*|activat\w*)\b", re.I)
-DECREASE = re.compile(r"\b(?:decreas\w*|reduc\w*|down-?regulat\w*|lower\w*|loss|lost|impair\w*|suppress\w*|inhibit\w*|attenuat\w*|diminish\w*|declin\w*|atroph\w*|depress\w*|less|fewer|deplet\w*|delay\w*)\b", re.I)
-NOCHANGE = re.compile(r"\b(?:no (?:significant )?(?:change|difference|effect|alteration)s?|not (?:significantly )?(?:alter\w*|affect\w*|chang\w*|differ\w*|reduc\w*|increas\w*|impair\w*)|(?:did|does|do) not (?:\w+ )?(?:alter|affect|change|reduce|increase|impair|differ)\w*|unchanged|unaffected|comparable|similar (?:to|between))\b", re.I)
-PREVENT = re.compile(r"\b(?:prevent\w*|mitigat\w*|attenuat\w*|protect\w*|rescu\w*|restor\w*|counteract\w*|ameliorat\w*|preserv\w*|blunt\w*|abrogat\w*)\b", re.I)
-NOT_PREVENT = re.compile(r"\b(?:did not|failed to|could not|was not able to|insufficient to|does not) (?:\w+ )?(?:prevent|mitigat|protect|rescu|restor|counteract|attenuat)\w*", re.I)
+INCREASE = re.compile(r"\b(?:increas\w*|elevat\w*|enhanc\w*|higher|greater|larger|faster|longer|stronger|induc\w*|promot\w*|accelerat\w*|augment\w*|stimulat\w*|intensif\w*|grow\w*)\b", re.I)
+DECREASE = re.compile(r"\b(?:decreas\w*|reduc\w*|lower\w*|smaller|slower|shorter|weaker|narrower|loss|lost|impair\w*|suppress\w*|inhibit\w*|attenuat\w*|diminish\w*|declin\w*|depress\w*|less|fewer|deplet\w*|delay\w*|weaken\w*)\b", re.I)
+NOCHANGE = re.compile(r"\b(?:no (?:significant )?(?:change|difference|effect|alteration|dependence)s?|not (?:significantly )?(?:alter\w*|affect\w*|chang\w*|differ\w*|reduc\w*|increas\w*|depend\w*)|(?:did|does|do) not (?:\w+ )?(?:alter|affect|change|reduce|increase|differ|depend)\w*|unchanged|unaffected|independent of|insensitive to|comparable|similar (?:to|between))\b", re.I)
+PREVENT = re.compile(r"\b(?:prevent\w*|mitigat\w*|attenuat\w*|protect\w*|extinguish\w*|suppress\w*|counteract\w*|reduc\w* the (?:risk|hazard)|inhibit\w*|quench\w*)\b", re.I)
+NOT_PREVENT = re.compile(r"\b(?:did not|failed to|could not|was not able to|insufficient to|does not|unable to) (?:\w+ )?(?:prevent|mitigat|protect|extinguish|suppress|counteract|quench|inhibit)\w*", re.I)
 
 
 def find(entity_type: str, text: str) -> list[tuple[Entity, int]]:
@@ -298,6 +282,8 @@ def normalize(entity_type: str, raw: str | None) -> str | None:
     """Map a free-text string (e.g. from the LLM) onto a canonical entity id."""
     if not raw:
         return None
+    if raw in BY_ID and BY_ID[raw].type == entity_type:
+        return raw
     hits = find(entity_type, raw)
     if hits:
         return hits[0][0].id

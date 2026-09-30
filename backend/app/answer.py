@@ -1,7 +1,7 @@
 """Question answering over the knowledge base.
 
 Two modes, same event protocol:
-  * LLM (GEMINI_API_KEY or ANTHROPIC_API_KEY set; Gemini wins if both, SBA_LLM overrides):
+  * LLM (GEMINI_API_KEY or ANTHROPIC_API_KEY set; Gemini wins if both, EMBER_LLM overrides):
     grounded, persona-aware generation that cites
     retrieved passages with [n] markers; citations are validated afterwards.
   * Extractive (no key): selects the best-supported sentences from retrieved
@@ -28,8 +28,8 @@ from app.retrieval import STOP, coverage, query_terms, search
 from pipeline import ontology as O
 from pipeline.paths import LOG_DIR
 
-MODEL = os.environ.get("SBA_ANSWER_MODEL", "claude-opus-5-5")
-GEMINI_MODEL = os.environ.get("SBA_GEMINI_MODEL", "gemini-flash-latest")
+MODEL = os.environ.get("EMBER_ANSWER_MODEL", "claude-opus-5-5")
+GEMINI_MODEL = os.environ.get("EMBER_GEMINI_MODEL", "gemini-flash-latest")
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
 SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 CITE = re.compile(r"\[(\d{1,2})\]")
@@ -81,10 +81,10 @@ def _gemini_key() -> str | None:
 
 
 def llm_provider() -> str | None:
-    """'gemini', 'claude' or None (extractive). SBA_LLM=gemini|claude forces one if its key is set."""
+    """'gemini', 'claude' or None (extractive). EMBER_LLM=gemini|claude forces one if its key is set."""
     have = {"gemini": bool(_gemini_key()),
             "claude": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))}
-    forced = os.environ.get("SBA_LLM", "").lower()
+    forced = os.environ.get("EMBER_LLM", "").lower()
     if forced in have:
         return forced if have[forced] else None
     return next((p for p, ok in have.items() if ok), None)
@@ -98,7 +98,7 @@ def related_findings(kb: KB, entities: list[str], paper_ids: set[str], limit: in
     ents = set(entities)
     scored = []
     for f in kb.findings:
-        keys = {f.get("stressor"), f.get("outcome"), f.get("tissue"), f.get("organism"), f.get("countermeasure"), *f.get("genes", [])}
+        keys = {f.get("condition"), f.get("outcome"), f.get("geometry"), f.get("fuel"), f.get("countermeasure"), *f.get("species", [])}
         hit = len(ents & keys)
         if hit and (f["paper_id"] in paper_ids or hit >= 2):
             scored.append((hit + f["confidence"] + (0.5 if f["paper_id"] in paper_ids else 0), f))
@@ -109,12 +109,12 @@ def related_findings(kb: KB, entities: list[str], paper_ids: set[str], limit: in
 def evidence_panel(kb: KB, entities: list[str]) -> dict:
     """Consensus/contradiction groups and risk ids touched by the question."""
     ents = set(entities)
-    groups = [c for c in kb.consensus if len(ents & {c["stressor"], c["outcome"], c["tissue"]}) >= (2 if len(ents) > 1 else 1)]
+    groups = [c for c in kb.consensus if len(ents & {c["condition"], c["outcome"], c["geometry"]}) >= (2 if len(ents) > 1 else 1)]
     groups.sort(key=lambda c: -c["n_papers"])
-    risks = [r["id"] for r in kb.risks if ents & set(r["stressors"] + r["outcomes"] + r["tissues"]) - {
-        "stressor:microgravity_flight", "stressor:simulated_microgravity"}]
+    # microgravity is in nearly every risk, so on its own it does not point at one
+    risks = [r["id"] for r in kb.risks if ents & set(r["conditions"] + r["outcomes"] + r["geometries"]) - {O.MICROGRAVITY}]
     return {"consensus": [{k: c[k] for k in ("id", "status", "majority", "agreement", "n_papers", "votes", "strength")} |
-                          {"label": " · ".join(filter(None, (kb.label(c["stressor"]), kb.label(c["outcome"]), kb.label(c["tissue"]))))}
+                          {"label": " · ".join(filter(None, (kb.label(c["condition"]), kb.label(c["outcome"]), kb.label(c["geometry"]))))}
                           for c in groups[:4]],
             "risks": risks[:4]}
 
@@ -133,7 +133,7 @@ def should_refuse(q: str, passages: list[dict], entities: list[str]) -> bool:
 def extractive_answer(kb: KB, q: str, persona: str, passages: list[dict], entities: list[str]) -> str:
     terms = query_terms(q)
     ents = set(entities)
-    q_stress = [e for e in ents if e.startswith("stressor:")]
+    q_cond = [e for e in ents if e.startswith("condition:")]
     cands = []
     for n, p in enumerate(passages, 1):
         for s in SENT_SPLIT.split(p["text"]):
@@ -144,8 +144,8 @@ def extractive_answer(kb: KB, q: str, persona: str, passages: list[dict], entiti
             finding_cue = bool(O.INCREASE.search(s) or O.DECREASE.search(s) or O.NOCHANGE.search(s) or
                                re.search(r"\b(?:result|show|found|reveal|demonstrat|indicat|suggest|observ)\w*", s, re.I))
             score = coverage(s, terms) * 2 + ent_hits * 0.6 + finding_cue * 0.5 + (0.3 if p["section"] in ("ABSTRACT", "RESULTS", "CONCL") else 0) - n * 0.03
-            if q_stress:  # question is about a spaceflight stressor: keep sentences that talk about it
-                score += 0.8 if any(O.BY_ID[e].rx.search(s) for e in q_stress) or SPACE_CTX.search(s) else -0.7
+            if q_cond:  # question is about a gravity/atmosphere/flow condition: keep sentences that talk about it
+                score += 0.8 if any(O.BY_ID[e].rx.search(s) for e in q_cond) or SPACE_CTX.search(s) else -0.7
             cands.append((score, n, s.strip()))
     cands.sort(key=lambda x: -x[0])
     picked, used_papers, seen = [], Counter(), set()
@@ -196,18 +196,18 @@ def extractive_answer(kb: KB, q: str, persona: str, passages: list[dict], entiti
             lines.append(" ".join(glance))
         lines += [f"{s} [{n}]" for n, s in picked]
     flight = {p["study_type"] for p in passages[:6]}
-    if flight and flight <= {"ground", "ground_analog"}:
-        lines.append("_Note: the supporting studies are ground/analog experiments, not freefall flight._")
+    if flight and flight <= {"ground", "short_ug", "computational"}:
+        lines.append("_Note: the supporting studies are 1g, drop-tower/parabolic or model results, not long-duration orbital tests._")
     return ("\n\n" if persona == "scientist" else "\n").join(lines)
 
 
 # ----------------------------------------------------------------------- follow-ups + comparisons
-ENTITY_TYPES = ("stressor", "organism", "tissue", "outcome", "countermeasure", "gene")
+ENTITY_TYPES = ("condition", "fuel", "geometry", "outcome", "countermeasure", "species")
 
 
 def swap_entities(base: str, new: str) -> str | None:
     """Put the concepts named in `new` into `base` in place of same-type concepts:
-    swap_entities("bone loss in mice", "humans") -> "bone loss in humans". None when no type overlaps."""
+    swap_entities("flame spread over PMMA", "cotton") -> "flame spread over cotton". None when no type overlaps."""
     out, swapped = base, False
     for t in ENTITY_TYPES:
         hits = O.find(t, new)
@@ -223,11 +223,11 @@ def swap_entities(base: str, new: str) -> str | None:
 
 
 def contextualize(q: str, history: list[dict] | None) -> str:
-    """Resolve a follow-up ("what about in rats?", "does it recover?") against the previous question for retrieval."""
+    """Resolve a follow-up ("what about heptane?", "does it extinguish?") against the previous question for retrieval."""
     if not history:
         return q
     prev = history[-1].get("q", "")
-    # pronoun / "what about" openers, or a short fragment that is not itself a question ("in rats?")
+    # pronoun / "what about" openers, or a short fragment that is not itself a question ("at 34% oxygen?")
     if FOLLOW_UP.search(q) or (len(query_terms(q)) <= 2 and not QUESTION.match(q)):
         return swap_entities(prev, q) or f"{prev} {q}"
     return q
@@ -240,7 +240,7 @@ def compare_sides(q: str) -> tuple[str, str] | None:
     a, b = (g.strip() for g in [g for g in m.groups() if g][:2])
     if len(a) <= 2 or len(b) <= 2:
         return None
-    # "bone loss in mice and humans": the short side borrows the rest of the question from the long one
+    # "flame spread over PMMA and cotton": the short side borrows the rest of the question from the long one
     if len(query_terms(b)) < len(query_terms(a)):
         b = swap_entities(a, b) or b
     elif len(query_terms(a)) < len(query_terms(b)):
@@ -304,7 +304,7 @@ def confidence(support: list[dict], passages: list[dict], refused: bool) -> dict
     reasons = [f"{int(mean * 100)}% average word-level support for cited sentences",
                f"{int(cited_share * 100)}% of sentences carry a citation",
                f"{papers} distinct papers retrieved",
-               "includes spaceflight data" if flight else "ground/analog studies only"]
+               "includes orbital-flight data" if flight else "short-duration µg / 1g studies only"]
     weak = [s["sentence"][:80] for s in support if s["score"] is not None and s["score"] < 0.4]
     if weak:
         reasons.append(f"{len(weak)} weakly supported sentence(s)")
@@ -340,7 +340,7 @@ async def answer(kb: KB, q: str, persona: str = "scientist", k: int = 8, filters
     if refused and mode == "extractive":
         covered = ", ".join(n["label"] for n in sorted(kb.graph["nodes"], key=lambda n: -n["papers"])[:6])
         text = ("The indexed publications don't contain enough evidence to answer this. The corpus is strongest on: "
-                f"{covered}. Try rephrasing around an organism, tissue or spaceflight stressor.")
+                f"{covered}. Try rephrasing around a fuel, flame geometry or freefall condition.")
         for tok in re.findall(r"\S+\s*", text):
             yield {"event": "token", "data": {"text": tok}}
     elif mode == "extractive":

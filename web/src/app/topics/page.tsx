@@ -27,7 +27,7 @@ function TopicList() {
   const { data, error } = useApi<Takeaways>("/takeaways");
   const rows = Object.entries(data ?? {}).sort((a, b) => b[1].n_papers - a[1].n_papers);
   return (
-    <Page title="Topics" subtitle="What the corpus establishes, disputes and leaves open for each body system, generated from the evidence groups.">
+    <Page title="Topics" subtitle="What the corpus establishes, disputes and leaves open for each flame geometry, generated from the evidence groups.">
       {error ? <ErrorNote error={error} /> : !data ? <LoadingList rows={6} /> : (
         <div className="grid md:grid-cols-2 gap-3 pb-10">
           {rows.map(([tid, t]) => (
@@ -69,7 +69,7 @@ function TopicView({ id }: { id: string }) {
   return (
     <Page title={t.label} back={{ href: "/topics", label: "Topics" }}
       subtitle={`${t.n_papers} papers · ${t.n_findings} evidence-quoted findings`}
-      trailing={<Link href={`/ask?q=${encodeURIComponent(`What does spaceflight do to the ${t.label.toLowerCase()}?`)}`} className="t-sub text-tint">Ask</Link>}>
+      trailing={<Link href={`/ask?q=${encodeURIComponent(`What is known about ${t.label.toLowerCase()} in microgravity?`)}`} className="t-sub text-tint">Ask</Link>}>
       <div className="bg-bg-2 rounded-2xl p-4 mb-6">
         <div className="t-headline mb-3">Key takeaways</div>
         {t.takeaways.length ? <TakeawayList items={t.takeaways} /> : <p className="t-sub text-label-2">Not enough grouped evidence yet.</p>}

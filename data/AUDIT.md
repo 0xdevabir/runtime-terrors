@@ -57,18 +57,21 @@ No units apply at the metadata level.
 The corpus peaks in 1995–2004 (the NASA microgravity combustion conference proceedings). ISS-era work
 (Saffire, BASS, FLEX, ACME, 2010+) is only about 150 records.
 
-### PDFs — **paused**
+### Full text — **NTRS-extracted text (done)**
 
 | | |
 |---|---|
-| Downloaded | 5 of 965 (345.6 MB) |
-| Text extracted | 0 |
-| Failures logged | 0 |
+| NTRS text files downloaded | 966 (88 MB, `data/raw/ntrs/fulltext/<id>.txt`) |
+| Near-empty files (< 200 bytes) | 10 |
+| Reports with usable full text after processing | 917 of 1,334 (the rest are abstract-only) |
+| PDFs downloaded | 5 (paused; not needed) |
 
-The download was stopped deliberately. A 25-file random HEAD sample estimated about 0.9 GB for all 965 PDFs,
+The PDF download was stopped deliberately. A 25-file random HEAD sample estimated about 0.9 GB for all 965 PDFs,
 but the first files were 1970s scanned proceedings of 19–147 MB each. Scanned PDFs also have no text layer for
 `pypdf`. NTRS serves its own extracted text per document (`links.fulltext`); for the 126 MB proceedings PDF that
-file is 578 KB. How to continue is an open decision (see the Step 0 questions).
+file is 578 KB. That text is what the pipeline uses (`python -m pipeline.ntrs fulltext`); `pipeline.ntrs text`
+remains as a PDF fallback. Because the text is OCR'd, `pipeline/process.py` recovers sections from heading lines
+and stops at the reference list.
 
 ## ML readiness
 
@@ -80,6 +83,7 @@ confirmed yet.
 
 ## Other files in `data/` (from the previous project)
 
-`data/raw/PMC*.json` (about 52 MB, space-biology full text, gitignored, deletion already staged in git),
-`data/SB_publication_PMC.csv`, and `data/kb/` (77 MB built space-biology KB). They have not been touched and
-are pending your decision.
+- `data/SB_publication_PMC.csv`: removed from git (`git rm`).
+- `data/kb/`: rebuilt from the NTRS corpus; it no longer contains space-biology data.
+- `data/raw/PMC*.json` (572 files, about 52 MB, space-biology full text): gitignored, so never committed. They are
+  still on disk, unused by the pipeline, and safe to delete (`rm data/raw/PMC*.json`).

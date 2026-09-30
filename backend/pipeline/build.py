@@ -20,13 +20,26 @@ from pipeline import ontology as O
 from pipeline.paths import KB_DIR, LLM_DIR
 from pipeline.risks import RISKS
 
-STUDY_WEIGHT = {"flight": 1.0, "both": 1.0, "ground_analog": 0.6, "ground": 0.5, "computational": 0.3, "review": 0.2}
-ORG_WEIGHT = {"Human": 1.0, "Rodent": 0.8, "Other animal": 0.6, "Cell culture": 0.5, "Plant": 0.5, "Microbe": 0.5}
+# long-duration orbital tests are the gold standard; drop towers/parabolic flights give seconds of freefall
+STUDY_WEIGHT = {"flight": 1.0, "both": 1.0, "short_ug": 0.7, "ground": 0.5, "computational": 0.3, "review": 0.2}
+# real spacecraft materials matter most for crew fire safety
+FUEL_WEIGHT = {"Spacecraft material": 1.0, "Solid": 0.8, "Liquid": 0.6, "Gas": 0.6}
+FUEL_GROUPS = ["Spacecraft material", "Solid", "Liquid", "Gas"]
 
 
 def lc(label: str) -> str:
-    """Lower-case a label for mid-sentence use, keeping acronyms (DNA, ISS, IL-6)."""
+    """Lower-case a label for mid-sentence use, keeping acronyms (PMMA, ISS, CO₂)."""
     return " ".join(w if sum(ch.isupper() for ch in w) > 1 else w.lower() for w in label.split())
+
+
+def fmt_seconds(s: float) -> str:
+    if s < 120:
+        return f"{s:g} s"
+    if s < 7200:
+        return f"{s / 60:.0f} min"
+    if s < 172800:
+        return f"{s / 3600:.0f} h"
+    return f"{s / 86400:.0f} days"
 
 
 def strength(weight_sum: float, scale: float = 3) -> dict:
@@ -52,13 +65,14 @@ def extract_all(papers: list[dict]) -> tuple[list[dict], dict]:
         llm_file = LLM_DIR / f"{p['id']}.json"
         if llm_file.exists():
             L = json.loads(llm_file.read_text())
-            profile.update({k: L[k] for k in ("organisms", "stressors", "platforms", "tissues") if L.get(k)})
+            profile.update({k: [x for x in L[k] if x in O.BY_ID] for k in ("fuels", "conditions", "platforms", "geometries") if L.get(k)})
             profile["study_type"] = L.get("study_type") or profile["study_type"]
-            if L.get("duration_days"):
-                profile["duration"] = {"value": L["duration_days"], "unit": "days", "days": L["duration_days"]}
-            for k in ("sample_size", "dose"):
+            if L.get("duration_seconds"):
+                s = L["duration_seconds"]
+                profile["duration"] = {"value": s, "unit": "s", "seconds": s, "inferred": False}
+            for k in ("n_tests", "atmosphere"):
                 profile[k] = L.get(k) or profile[k]
-            for k in ("missions", "limitations"):
+            for k in ("missions", "experiments", "limitations"):
                 profile[k] = L.get(k) or profile[k]
             fnds = []
             for f in L["findings"]:
@@ -79,16 +93,15 @@ def extract_all(papers: list[dict]) -> tuple[list[dict], dict]:
             fnds = []
         for i, f in enumerate(fnds):
             f.update({"id": f"{p['id']}:f{i}", "paper_id": p["id"], "year": p["year"], "study_type": p["study_type"]})
-            if not f.get("genes"):
-                f["genes"] = []
+            f["species"] = [s for s in f.get("species") or [] if s in O.BY_ID]
             findings.append(f)
         p["n_findings"] = len(fnds)
     return findings, dict(qstats)
 
 
 def finding_weight(f: dict, paper_by_id: dict) -> float:
-    org = O.BY_ID.get(f.get("organism") or "")
-    return STUDY_WEIGHT.get(f["study_type"], 0.5) * ORG_WEIGHT.get(org.group if org else "", 0.5) * (0.5 + 0.5 * f.get("confidence", 0.6))
+    fuel = O.BY_ID.get(f.get("fuel") or "")
+    return STUDY_WEIGHT.get(f["study_type"], 0.5) * FUEL_WEIGHT.get(fuel.group if fuel else "", 0.6) * (0.5 + 0.5 * f.get("confidence", 0.6))
 
 
 # ----------------------------------------------------------------------------- graph
@@ -108,23 +121,23 @@ def build_graph(papers: list[dict], findings: list[dict]) -> dict:
         e["w"] += finding_weight(f, paper_by_id)
 
     for f in findings:
-        for k in ("organism", "stressor", "tissue", "outcome", "countermeasure"):
+        for k in ("fuel", "condition", "geometry", "outcome", "countermeasure"):
             if f.get(k):
                 node_papers[f[k]].add(f["paper_id"])
-        for g in f["genes"]:
-            node_papers[g].add(f["paper_id"])
-        add_edge(f["stressor"], f["outcome"], "affects", f)
-        add_edge(f.get("organism"), f["stressor"], "exposed_to", f)
-        add_edge(f["outcome"], f.get("tissue"), "observed_in", f)
+        for s in f["species"]:
+            node_papers[s].add(f["paper_id"])
+        add_edge(f["condition"], f["outcome"], "affects", f)
+        add_edge(f.get("fuel"), f["condition"], "burned_in", f)
+        add_edge(f["outcome"], f.get("geometry"), "observed_in", f)
         add_edge(f.get("countermeasure"), f["outcome"], "mitigates" if f.get("countermeasure_effect") != "ineffective" else "fails_to_mitigate", f)
-        for g in f["genes"]:
-            add_edge(g, f["outcome"], "implicated_in", f)
+        for s in f["species"]:
+            add_edge(s, f["outcome"], "implicated_in", f)
     for p in papers:
         for pl in p.get("platforms", []):
             node_papers[pl].add(p["id"])
-            for org in p.get("organisms", [])[:1]:
-                add_edge(pl, org, "hosted", {"paper_id": p["id"], "id": f"{p['id']}:meta", "direction": "n/a",
-                                              "study_type": p["study_type"], "organism": org, "confidence": 0.6})
+            for fuel in p.get("fuels", [])[:1]:
+                add_edge(pl, fuel, "hosted", {"paper_id": p["id"], "id": f"{p['id']}:meta", "direction": "n/a",
+                                              "study_type": p["study_type"], "fuel": fuel, "confidence": 0.6})
 
     nodes = []
     for nid, ps in node_papers.items():
@@ -150,7 +163,7 @@ def consensus(papers: list[dict], findings: list[dict]) -> list[dict]:
     groups: dict[tuple, list] = defaultdict(list)
     for f in findings:
         if f["direction"] in ("increase", "decrease", "no_change"):
-            groups[(f["stressor"], f["outcome"], f.get("tissue"))].append(f)
+            groups[(f["condition"], f["outcome"], f.get("geometry"))].append(f)
     out = []
     for (s, o, t), fs in groups.items():
         # one vote per paper (its highest-confidence finding)
@@ -173,28 +186,28 @@ def consensus(papers: list[dict], findings: list[dict]) -> list[dict]:
         for f in by_paper.values():
             p = paper_by_id[f["paper_id"]]
             sides[f["direction"]].append({"paper_id": p["id"], "title": p["title"], "year": p["year"], "quote": f["evidence_quote"],
-                                          "organism": f.get("organism"), "study_type": p["study_type"],
-                                          "duration_days": (p.get("duration") or {}).get("days")})
+                                          "fuel": f.get("fuel"), "study_type": p["study_type"],
+                                          "duration_seconds": (p.get("duration") or {}).get("seconds")})
         explanations = []
         if status == "contradictory":
             dim = lambda key: {d: {x[key] for x in v} for d, v in sides.items()}
-            orgs = dim("organism")
-            if len({frozenset(v) for v in orgs.values()}) > 1:
-                explanations.append("Different model organisms on each side")
+            fuels = dim("fuel")
+            if len({frozenset(v) for v in fuels.values()}) > 1:
+                explanations.append("Different fuels on each side")
             sts = dim("study_type")
-            if any("flight" in v for v in sts.values()) and any(v & {"ground_analog", "ground"} for v in sts.values()):
-                explanations.append("Mix of real spaceflight and ground-analog studies")
-            durs = [d for v in sides.values() for d in (x["duration_days"] for x in v) if d]
+            if any(v & {"flight", "both"} for v in sts.values()) and any(v & {"short_ug", "ground"} for v in sts.values()):
+                explanations.append("Mix of orbital-flight and short-duration/1g tests")
+            durs = [d for v in sides.values() for d in (x["duration_seconds"] for x in v) if d]
             if durs and max(durs) > 3 * min(durs):
-                explanations.append(f"Exposure durations range {int(min(durs))}–{int(max(durs))} days")
+                explanations.append(f"Freefall test times range {fmt_seconds(min(durs))}–{fmt_seconds(max(durs))}")
             if not explanations:
-                explanations.append("Differences in tissue sampling, endpoints or statistics")
+                explanations.append("Differences in geometry, atmosphere, diagnostics or definitions")
         # how the picture evolved: cumulative votes by publication year
         timeline, run = [], Counter()
         for y in sorted({int(f["year"]) for f in by_paper.values() if f.get("year")}):
             run.update(f["direction"] for f in by_paper.values() if f.get("year") and int(f["year"]) == y)
             timeline.append({"year": y, **run})
-        out.append({"id": f"{s}|{o}|{t}", "stressor": s, "outcome": o, "tissue": t, "n_papers": len(by_paper),
+        out.append({"id": f"{s}|{o}|{t}", "condition": s, "outcome": o, "geometry": t, "n_papers": len(by_paper),
                     "votes": dict(votes), "majority": majority, "agreement": round(agreement, 2), "status": status,
                     "strength": strength(sum(w.values())), "sides": sides, "explanations": explanations, "timeline": timeline})
     out.sort(key=lambda g: (g["status"] != "contradictory", -g["n_papers"]))
@@ -209,64 +222,66 @@ def gap_matrices(papers: list[dict], findings: list[dict]) -> dict:
         for p in papers:
             rows = rows_from_paper(p)
             for r in rows:
-                for c in p.get("stressors", []) if col_type == "stressor" else []:
+                for c in p.get("conditions", []) if col_type == "condition" else []:
                     cells[(r, c)].add(p["id"])
                     if p["study_type"] in ("flight", "both"):
                         flight[(r, c)].add(p["id"])
         for f in findings:
             r = f.get(row_type)
             if r:
-                cells[(r, f["stressor"])].add(f["paper_id"])
+                cells[(r, f["condition"])].add(f["paper_id"])
                 if f["study_type"] in ("flight", "both"):
-                    flight[(r, f["stressor"])].add(f["paper_id"])
+                    flight[(r, f["condition"])].add(f["paper_id"])
         rows = [e.id for e in O.BY_TYPE[row_type]]
         cols = [e.id for e in O.BY_TYPE[col_type]]
         return {"rows": [{"id": r, "label": O.BY_ID[r].label, "group": O.BY_ID[r].group} for r in rows],
                 "cols": [{"id": c, "label": O.BY_ID[c].label, "group": O.BY_ID[c].group} for c in cols],
                 "cells": {f"{r}|{c}": {"papers": sorted(cells[(r, c)]), "flight": len(flight[(r, c)])} for r in rows for c in cols if cells.get((r, c))}}
     return {
-        "organism": matrix("organism", "stressor", lambda p: p.get("organisms", [])),
-        "tissue": matrix("tissue", "stressor", lambda p: p.get("tissues", [])),
-        "outcome": matrix("outcome", "stressor", lambda p: []),
-        "species_bias": species_bias(papers),
+        "fuel": matrix("fuel", "condition", lambda p: p.get("fuels", [])),
+        "geometry": matrix("geometry", "condition", lambda p: p.get("geometries", [])),
+        "outcome": matrix("outcome", "condition", lambda p: []),
+        "material_bias": material_bias(papers),
         "duration": duration_gap(papers),
     }
 
 
-DUR_BUCKETS = (("< 2 weeks", 0, 14), ("2 weeks – 3 months", 14, 90), ("3 – 6 months", 90, 180), ("> 6 months", 180, 1e9))
+# freefall test time: drop towers give seconds, parabolic flights ~20 s, sounding rockets minutes, orbit hours+
+DUR_BUCKETS = (("< 10 s (drop tower)", 0, 10), ("10–60 s (parabolic)", 10, 60),
+               ("1–30 min (sounding rocket)", 60, 1800), ("> 30 min (orbital)", 1800, 1e12))
+LONG_DURATION_S = 3600  # a spacecraft fire can burn far longer than any drop-tower test
 
 
-def species_bias(papers: list[dict]) -> dict:
-    """Share of each organism group per body system: where are we extrapolating from mice or cells to humans?"""
-    groups = ["Human", "Rodent", "Other animal", "Cell culture", "Plant", "Microbe"]
+def material_bias(papers: list[dict]) -> dict:
+    """Fuel-group mix per flame geometry: how often is a configuration tested on real spacecraft materials?"""
     rows = []
-    for t in O.BY_TYPE["tissue"]:
-        ps = [p for p in papers if t.id in p.get("tissues", []) and not p.get("duplicate_of")]
+    for t in O.BY_TYPE["geometry"]:
+        ps = [p for p in papers if t.id in p.get("geometries", []) and not p.get("duplicate_of")]
         if len(ps) < 5:
             continue
-        c = Counter(g for p in ps for g in {O.BY_ID[o].group for o in p.get("organisms", [])})
-        human = c.get("Human", 0) / len(ps)
-        rows.append({"id": t.id, "label": t.label, "n_papers": len(ps), "counts": {g: c.get(g, 0) for g in groups},
-                     "human_share": round(human, 2), "flag": human < 0.15 and t.group not in ("Plant tissue", "Microbial")})
-    overall = Counter(g for p in papers for g in {O.BY_ID[o].group for o in p.get("organisms", [])})
-    return {"groups": groups, "overall": {g: overall.get(g, 0) for g in groups},
-            "rows": sorted(rows, key=lambda r: r["human_share"])}
+        c = Counter(g for p in ps for g in {O.BY_ID[x].group for x in p.get("fuels", [])})
+        share = c.get("Spacecraft material", 0) / len(ps)
+        rows.append({"id": t.id, "label": t.label, "n_papers": len(ps), "counts": {g: c.get(g, 0) for g in FUEL_GROUPS},
+                     "material_share": round(share, 2), "flag": share < 0.15 and t.group == "Solid configuration"})
+    overall = Counter(g for p in papers for g in {O.BY_ID[x].group for x in p.get("fuels", [])})
+    return {"groups": FUEL_GROUPS, "overall": {g: overall.get(g, 0) for g in FUEL_GROUPS},
+            "rows": sorted(rows, key=lambda r: r["material_share"])}
 
 
 def duration_gap(papers: list[dict]) -> dict:
-    """Exposure duration of flight/analog studies per body system, against a ~900-day Mars mission."""
+    """Freefall test time per flame geometry, against a long-duration orbital fire."""
     rows = []
-    for t in O.BY_TYPE["tissue"]:
-        ps = [p for p in papers if t.id in p.get("tissues", []) and p.get("duration") and not p.get("duplicate_of")]
+    for t in O.BY_TYPE["geometry"]:
+        ps = [p for p in papers if t.id in p.get("geometries", []) and p.get("duration") and not p.get("duplicate_of")]
         if len(ps) < 3:
             continue
-        days = [p["duration"]["days"] for p in ps]
-        rows.append({"id": t.id, "label": t.label, "n_with_duration": len(ps), "max_days": max(days),
-                     "median_days": sorted(days)[len(days) // 2],
-                     "buckets": {b: sum(lo <= d < hi for d in days) for b, lo, hi in DUR_BUCKETS}})
-    known = [p["duration"]["days"] for p in papers if p.get("duration")]
-    return {"buckets": [b for b, _, _ in DUR_BUCKETS], "rows": sorted(rows, key=lambda r: r["max_days"]),
-            "n_with_duration": len(known), "mars_days": 900,
+        secs = [p["duration"]["seconds"] for p in ps]
+        rows.append({"id": t.id, "label": t.label, "n_with_duration": len(ps), "max_seconds": max(secs),
+                     "median_seconds": sorted(secs)[len(secs) // 2],
+                     "buckets": {b: sum(lo <= d < hi for d in secs) for b, lo, hi in DUR_BUCKETS}})
+    known = [p["duration"]["seconds"] for p in papers if p.get("duration")]
+    return {"buckets": [b for b, _, _ in DUR_BUCKETS], "rows": sorted(rows, key=lambda r: r["max_seconds"]),
+            "n_with_duration": len(known), "target_seconds": LONG_DURATION_S,
             "overall": {b: sum(lo <= d < hi for d in known) for b, lo, hi in DUR_BUCKETS}}
 
 
@@ -303,8 +318,8 @@ def graph_analytics(graph: dict) -> None:
         ms = sorted((by_id[x] for x in c if x in by_id), key=lambda n: -n["pagerank"])
         if len(ms) < 3:
             continue
-        # name a theme after its most central non-stressor concepts (stressors connect everything)
-        core = [n for n in ms if n["type"] not in ("stressor", "organism")][:2] or ms[:2]
+        # name a theme after its most central non-condition concepts (microgravity connects everything)
+        core = [n for n in ms if n["type"] not in ("condition", "fuel")][:2] or ms[:2]
         themes.append({"id": i, "label": " & ".join(n["label"] for n in core), "size": len(ms),
                        "members": [n["id"] for n in ms], "top": [n["id"] for n in ms[:6]]})
     graph["communities"] = themes
@@ -331,32 +346,32 @@ def novelty(papers: list[dict], cons: list[dict], recent_years: int = 2) -> list
 
 
 def takeaways(papers: list[dict], findings: list[dict], cons: list[dict], gaps: dict) -> dict:
-    """Per body system: a few auto-generated key takeaways, each backed by a consensus group or a count."""
+    """Per flame geometry: a few auto-generated key takeaways, each backed by a consensus group or a count."""
     phrase = {"decrease": "decreases", "increase": "increases", "no_change": "does not change", "mixed": "has mixed effects on"}
-    bias = {r["id"]: r for r in gaps["species_bias"]["rows"]}
+    bias = {r["id"]: r for r in gaps["material_bias"]["rows"]}
     dur = {r["id"]: r for r in gaps["duration"]["rows"]}
     out = {}
-    for t in O.BY_TYPE["tissue"]:
-        ps = {f["paper_id"] for f in findings if f.get("tissue") == t.id}
+    for t in O.BY_TYPE["geometry"]:
+        ps = {f["paper_id"] for f in findings if f.get("geometry") == t.id}
         if len(ps) < 5:
             continue
-        rel = [c for c in cons if c["tissue"] == t.id]
+        rel = [c for c in cons if c["geometry"] == t.id]
         items = []
         for c in sorted((c for c in rel if c["status"] == "consensus"), key=lambda c: -c["n_papers"])[:3]:
             items.append({"kind": "consensus", "consensus_id": c["id"],
-                          "text": f"{O.BY_ID[c['stressor']].label} {phrase.get(c['majority'], 'affects')} "
+                          "text": f"{O.BY_ID[c['condition']].label} {phrase.get(c['majority'], 'affects')} "
                                   f"{lc(O.BY_ID[c['outcome']].label)} ({c['n_papers']} papers, {int(c['agreement'] * 100)}% weighted agreement)."})
         for c in sorted((c for c in rel if c["status"] == "contradictory"), key=lambda c: -c["n_papers"])[:2]:
             items.append({"kind": "conflict", "consensus_id": c["id"],
-                          "text": f"Studies disagree on how {lc(O.BY_ID[c['stressor']].label)} affects {lc(O.BY_ID[c['outcome']].label)} "
+                          "text": f"Studies disagree on how {lc(O.BY_ID[c['condition']].label)} affects {lc(O.BY_ID[c['outcome']].label)} "
                                   f"({', '.join(f'{v} {k.replace('_', ' ')}' for k, v in c['votes'].items())}): " + "; ".join(c["explanations"][:2]).lower() + "."})
         b = bias.get(t.id)
         if b and b["flag"]:
-            items.append({"kind": "gap", "text": f"Only {int(b['human_share'] * 100)}% of {b['n_papers']} papers include human data; most evidence comes from "
-                                                 + max((g for g in b["counts"] if g != "Human"), key=lambda g: b["counts"][g]).lower() + " studies."})
+            items.append({"kind": "gap", "text": f"Only {int(b['material_share'] * 100)}% of {b['n_papers']} papers test real spacecraft materials; most evidence comes from "
+                                                 + max((g for g in b["counts"] if g != "Spacecraft material"), key=lambda g: b["counts"][g]).lower() + " fuels."})
         d = dur.get(t.id)
-        if d and d["max_days"] < 365:
-            items.append({"kind": "gap", "text": f"The longest exposure studied is {int(d['max_days'])} days, far short of a ~900-day Mars mission."})
+        if d and d["max_seconds"] < LONG_DURATION_S:
+            items.append({"kind": "gap", "text": f"The longest freefall test is {fmt_seconds(d['max_seconds'])}; no long-duration orbital burn has been reported."})
         out[t.id] = {"label": t.label, "n_papers": len(ps), "items": items}
     return out
 
@@ -365,19 +380,19 @@ def takeaways(papers: list[dict], findings: list[dict], cons: list[dict], gaps: 
 def trends(papers: list[dict]) -> dict:
     years = sorted({p["year"] for p in papers if p["year"]})
     series = {}
-    for kind, key in (("stressor", "stressors"), ("organism_group", "organisms"), ("tissue", "tissues")):
+    for kind, key in (("condition", "conditions"), ("fuel_group", "fuels"), ("geometry", "geometries")):
         c: dict[str, Counter] = defaultdict(Counter)
         for p in papers:
             if not p["year"]:
                 continue
-            labels = {O.BY_ID[i].group if kind == "organism_group" else i for i in p.get(key, [])[:2]}
+            labels = {O.BY_ID[i].group if kind == "fuel_group" else i for i in p.get(key, [])[:2]}
             for lab in labels:
                 c[lab][p["year"]] += 1
         series[kind] = [{"key": k, "label": O.BY_ID[k].label if k in O.BY_ID else k, "total": sum(v.values()),
                          "counts": [v.get(y, 0) for y in years]} for k, v in sorted(c.items(), key=lambda kv: -sum(kv[1].values()))]
     study = Counter((p["year"], p["study_type"]) for p in papers if p["year"])
     return {"years": years, "series": series, "per_year": [sum(1 for p in papers if p["year"] == y) for y in years],
-            "study_type": {st: [study.get((y, st), 0) for y in years] for st in ("flight", "both", "ground_analog", "ground", "review")}}
+            "study_type": {st: [study.get((y, st), 0) for y in years] for st in ("flight", "both", "short_ug", "ground", "computational", "review")}}
 
 
 # ----------------------------------------------------------------------------- mission risk evidence
@@ -385,11 +400,11 @@ def risk_evidence(papers: list[dict], findings: list[dict], cons: list[dict]) ->
     paper_by_id = {p["id"]: p for p in papers}
     out = []
     for r in RISKS:
-        match = [f for f in findings if f["stressor"] in r["stressors"] and (f["outcome"] in r["outcomes"] or (f.get("tissue") in r["tissues"] and r["tissues"]))]
+        match = [f for f in findings if f["condition"] in r["conditions"] and (f["outcome"] in r["outcomes"] or (f.get("geometry") in r["geometries"] and r["geometries"]))]
         ps = {f["paper_id"] for f in match}
-        by_stressor = Counter()
+        by_condition = Counter()
         for f in match:
-            by_stressor[f["stressor"]] += 1
+            by_condition[f["condition"]] += 1
         cms: dict[str, dict] = {}
         for f in match:
             if f.get("countermeasure"):
@@ -413,24 +428,24 @@ def risk_evidence(papers: list[dict], findings: list[dict], cons: list[dict]) ->
             key_findings.append(f["id"])
             if len(key_findings) >= 8:
                 break
-        rel_cons = [c["id"] for c in cons if c["stressor"] in r["stressors"] and (c["outcome"] in r["outcomes"] or c["tissue"] in r["tissues"])]
-        n_human = sum(1 for pid in ps if "organism:human" in paper_by_id[pid].get("organisms", []))
+        rel_cons = [c["id"] for c in cons if c["condition"] in r["conditions"] and (c["outcome"] in r["outcomes"] or c["geometry"] in r["geometries"])]
+        n_material = sum(1 for pid in ps if any(O.BY_ID[x].group == "Spacecraft material" for x in paper_by_id[pid].get("fuels", [])))
         n_flight = sum(1 for pid in ps if paper_by_id[pid]["study_type"] in ("flight", "both"))
+        has_pg = any(f["condition"] == O.PARTIAL_GRAVITY for f in match)
         gaps = []
-        if n_human < 3:
-            gaps.append(f"Only {n_human} human studies in the corpus")
-        if not any(f["stressor"] == "stressor:partial_gravity" for f in match):
+        if n_material < 3:
+            gaps.append(f"Only {n_material} studies test real spacecraft materials")
+        if not has_pg:
             gaps.append("No partial-gravity (Moon/Mars) evidence")
         if n_flight < max(2, len(ps) // 4):
-            gaps.append("Evidence relies mostly on ground analogs")
-        combined = [pid for pid in ps if {"stressor:space_radiation"} <= set(paper_by_id[pid].get("stressors", [])) and
-                    set(paper_by_id[pid].get("stressors", [])) & {O.FLIGHT_STRESSOR, O.ANALOG_STRESSOR}]
+            gaps.append("Evidence relies mostly on short-duration or 1g tests")
+        combined = [pid for pid in ps if {"condition:elevated_o2", "condition:reduced_pressure", O.MICROGRAVITY} <= set(paper_by_id[pid].get("conditions", []))]
         if not combined:
-            gaps.append("Combined radiation + microgravity effects untested")
-        max_days = max([(paper_by_id[pid].get("duration") or {}).get("days") or 0 for pid in ps] + [0])
-        out.append({**r, "papers": sorted(ps), "n_papers": len(ps), "n_findings": len(match), "n_human": n_human, "n_flight": n_flight,
-                    "max_days": max_days, "has_partial_gravity": any(f["stressor"] == "stressor:partial_gravity" for f in match),
-                    "evidence_by_stressor": dict(by_stressor), "strength": strength(sum(per_paper_w.values()), scale=12),
+            gaps.append("Combined elevated-O₂ + reduced-pressure in microgravity untested")
+        max_seconds = max([(paper_by_id[pid].get("duration") or {}).get("seconds") or 0 for pid in ps] + [0])
+        out.append({**r, "papers": sorted(ps), "n_papers": len(ps), "n_findings": len(match), "n_material": n_material, "n_flight": n_flight,
+                    "max_seconds": max_seconds, "has_partial_gravity": has_pg,
+                    "evidence_by_condition": dict(by_condition), "strength": strength(sum(per_paper_w.values()), scale=12),
                     "key_findings": key_findings, "contradictions": [c for c in rel_cons if next(x for x in cons if x["id"] == c)["status"] == "contradictory"][:6],
                     "countermeasures": sorted(({**c, "papers": sorted(c["papers"]), "n_papers": len(c["papers"])} for c in cms.values()), key=lambda c: -(c["effective"] * 3 + len(c["papers"])))[:6],
                     "gaps": gaps})
@@ -442,7 +457,7 @@ def hypotheses(findings: list[dict], graph: dict) -> list[dict]:
     """A->B and B->C are supported but A->C was never measured together."""
     link: dict[tuple, set] = defaultdict(set)
     for f in findings:
-        ents = {f.get("countermeasure"), f["stressor"], f["outcome"], f.get("tissue"), *f["genes"]} - {None}
+        ents = {f.get("countermeasure"), f["condition"], f["outcome"], f.get("geometry"), *f["species"]} - {None}
         for a, b in combinations(sorted(ents), 2):
             link[(a, b)].add(f["paper_id"])
     nbrs: dict[str, dict] = defaultdict(dict)
@@ -450,8 +465,8 @@ def hypotheses(findings: list[dict], graph: dict) -> list[dict]:
         nbrs[a][b] = ps
         nbrs[b][a] = ps
     out = []
-    sources = [n for n in nbrs if O.BY_ID[n].type in ("countermeasure", "gene")]
-    targets = [n for n in nbrs if O.BY_ID[n].type in ("outcome", "tissue")]
+    sources = [n for n in nbrs if O.BY_ID[n].type in ("countermeasure", "species")]
+    targets = [n for n in nbrs if O.BY_ID[n].type in ("outcome", "geometry")]
     for a in sources:
         for c in targets:
             if c in nbrs[a]:
@@ -519,11 +534,11 @@ def main(skip_embeddings: bool = False) -> None:
         "papers": len(papers), "full_text": sum(p["full_text"] for p in papers), "chunks": len(chunks),
         "findings": len(findings), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]),
         "contradictions": sum(c["status"] == "contradictory" for c in cons), "consensus": sum(c["status"] == "consensus" for c in cons),
-        "osdr_linked": sum(bool(p["osdr_ids"]) for p in papers), "llm_papers": sum(p["summary"]["method"] == "llm" for p in papers),
+        "experiment_linked": sum(bool(p.get("experiments")) for p in papers), "llm_papers": sum(p["summary"]["method"] == "llm" for p in papers),
         "years": [min(p["year"] for p in papers if p["year"]), max(p["year"] for p in papers if p["year"])],
         "study_types": Counter(p["study_type"] for p in papers), "quote_guard": qstats,
         "duplicates": sum(bool(p.get("duplicate_of")) for p in papers), "communities": len(graph.get("communities", [])),
-        "with_sample_size": sum(bool(p.get("sample_size")) for p in papers), "with_mission": sum(bool(p.get("missions")) for p in papers),
+        "with_n_tests": sum(bool(p.get("n_tests")) for p in papers), "with_mission": sum(bool(p.get("missions")) for p in papers),
     }
     write = lambda name, obj: (KB_DIR / name).write_text(json.dumps(obj, default=list))
     write("papers.json", papers)

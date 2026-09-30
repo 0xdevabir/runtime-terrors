@@ -55,8 +55,8 @@ export default function GapsPage() {
     <Page wide title="Evidence Gaps" subtitle="Pale or empty squares = barely studied. That’s where to look next."
       toolbar={
         <div className="flex flex-wrap items-center gap-3">
-          <Segmented className="w-[300px]" value={dim} onChange={setDim} options={(Object.keys(DIM_LABEL) as Dim[]).map((d) => ({ value: d, label: DIM_LABEL[d] }))} />
-          <Segmented className="w-[240px]" value={flight ? "f" : "a"} onChange={(v) => setFlight(v === "f")} options={[{ value: "a", label: "All studies" }, { value: "f", label: "Orbital flight only" }]} />
+          <Segmented className="w-full sm:w-[300px]" value={dim} onChange={setDim} options={(Object.keys(DIM_LABEL) as Dim[]).map((d) => ({ value: d, label: DIM_LABEL[d] }))} />
+          <Segmented className="w-full sm:w-[240px]" value={flight ? "f" : "a"} onChange={(v) => setFlight(v === "f")} options={[{ value: "a", label: "All studies" }, { value: "f", label: "Orbital flight only" }]} />
         </div>
       }>
       {error ? <ErrorNote error={error} /> : !m ? <Skeleton h={420} /> : (

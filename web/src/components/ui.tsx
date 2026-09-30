@@ -154,11 +154,11 @@ export function Sheet({ open, onClose, title, children, wide = false }: { open: 
         <div className="md:hidden mx-auto mt-2 w-9 h-[5px] rounded-full bg-fill-2" />
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
           <div className="t-headline min-w-0 truncate">{title}</div>
-          <button onClick={onClose} aria-label="Close" className="grid place-items-center w-[30px] h-[30px] rounded-full bg-fill text-label-2 shrink-0 btn-press">
+          <button onClick={onClose} aria-label="Close" className="grid place-items-center w-9 h-9 md:w-[30px] md:h-[30px] rounded-full bg-fill text-label-2 shrink-0 btn-press">
             <Icon name="xmark" size={14} stroke={2.6} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-8">{children}</div>
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-8">{children}</div>
       </div>
     </div>
   );
@@ -233,6 +233,7 @@ export function SearchField({ value, onChange, placeholder = "Search", onSubmit,
     <form onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }} className="flex items-center gap-1.5 h-9 px-2 rounded-[10px] bg-fill">
       <Icon name="search" size={17} className="text-label-2" stroke={2.2} />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
+        enterKeyHint="search" aria-label={placeholder}
         className="flex-1 bg-transparent outline-none t-body placeholder:text-label-2 min-w-0" />
       {value && (
         <button type="button" onClick={() => onChange("")} className="grid place-items-center w-4 h-4 rounded-full bg-label-3 text-bg-2" aria-label="Clear">

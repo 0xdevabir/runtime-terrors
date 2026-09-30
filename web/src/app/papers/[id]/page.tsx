@@ -65,9 +65,9 @@ function Paper() {
 
       {/* Summary levels */}
       <div className="bg-bg-2 rounded-2xl p-4 mb-8">
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="t-headline flex items-center gap-2"><span className="text-indigo"><Icon name="sparkles" size={18} /></span>Summary</div>
-          <Segmented size="sm" className="w-[220px]" value={level} onChange={setLevel}
+          <Segmented size="sm" className="w-full sm:w-[220px]" value={level} onChange={setLevel}
             options={[{ value: "l1", label: "One line" }, { value: "l2", label: "Key points" }, { value: "l3", label: "Detailed" }]} />
         </div>
         {level === "l1" && <p className="t-body">{p.summary.l1}</p>}

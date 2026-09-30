@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon, IconName } from "./Icon";
 import { Logo } from "./Logo";
 import { PERSONAS, Theme, usePrefs } from "./prefs";
@@ -30,6 +30,24 @@ export const MORE: NavItem[] = [
 ];
 
 const TABS: NavItem[] = PRIMARY.slice(0, 4);
+
+const isTextField = (el: EventTarget | null) =>
+  el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement ||
+  (el instanceof HTMLInputElement && !["range", "checkbox", "radio", "button", "submit"].includes(el.type));
+
+/** Flags <html data-typing> while a text field has focus, so the tab bar steps aside for the keyboard. */
+function useTypingFlag() {
+  useEffect(() => {
+    const root = document.documentElement;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const onIn = (e: FocusEvent) => { if (isTextField(e.target)) { clearTimeout(t); root.dataset.typing = ""; } };
+    // delayed so a tap on a send button lands before the layout shifts back
+    const onOut = () => { clearTimeout(t); t = setTimeout(() => { if (!isTextField(document.activeElement)) delete root.dataset.typing; }, 200); };
+    document.addEventListener("focusin", onIn);
+    document.addEventListener("focusout", onOut);
+    return () => { clearTimeout(t); document.removeEventListener("focusin", onIn); document.removeEventListener("focusout", onOut); delete root.dataset.typing; };
+  }, []);
+}
 
 const active = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -76,6 +94,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [moreToggled, setMoreOpen] = useState(false);
   const moreOpen = inMore || moreToggled;
   const [sheet, setSheet] = useState(false);
+  useTypingFlag();
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -102,21 +121,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="p-4 hairline-t"><Preferences /></div>
       </aside>
 
-      <main className="flex-1 min-w-0 pb-[calc(84px+env(safe-area-inset-bottom))] lg:pb-10">{children}</main>
+      <main className="flex-1 min-w-0 pb-[calc(var(--tabbar-h)+30px+env(safe-area-inset-bottom))] lg:pb-10">{children}</main>
 
       {/* iOS tab bar */}
-      <nav className="no-print lg:hidden fixed bottom-0 inset-x-0 z-40 material hairline-t pb-[env(safe-area-inset-bottom)]">
+      <nav className="tabbar no-print lg:hidden fixed bottom-0 inset-x-0 z-40 material hairline-t pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5 h-[54px]">
           {TABS.map((t) => {
             const on = active(path, t.href);
             return (
-              <Link key={t.href} href={t.href} className={`flex flex-col items-center justify-center gap-0.5 ${on ? "text-tint" : "text-label-2"}`}>
+              <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined} className={`flex flex-col items-center justify-center gap-0.5 ${on ? "text-tint" : "text-label-2"}`}>
                 <Icon name={t.icon} size={24} stroke={on ? 2.1 : 1.7} />
                 <span className="t-cap2 font-medium">{t.label}</span>
               </Link>
             );
           })}
-          <button onClick={() => setSheet(true)}
+          <button onClick={() => setSheet(true)} aria-label="More pages"
             className={`flex flex-col items-center justify-center gap-0.5 ${!TABS.some((t) => active(path, t.href)) ? "text-tint" : "text-label-2"}`}>
             <Icon name="ellipsis" size={24} stroke={2.4} />
             <span className="t-cap2 font-medium">More</span>

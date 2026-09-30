@@ -128,7 +128,7 @@ function Ask() {
       </div>
 
       {/* composer */}
-      <div className="no-print sticky bottom-[calc(50px+env(safe-area-inset-bottom))] lg:bottom-0 z-20 pt-2 pb-3 bg-gradient-to-t from-bg via-bg/95 to-transparent">
+      <div className="no-print sticky bottom-[var(--tabbar-space)] lg:bottom-0 z-20 pt-2 pb-3 bg-gradient-to-t from-bg via-bg/95 to-transparent">
         <div className="mx-auto max-w-[860px] px-4 lg:px-8">
           <div className="flex gap-1.5 mb-2 overflow-x-auto no-scrollbar">
             {SCOPE.map((s) => <Chip key={s.value} active={scope === s.value} onClick={() => setScope(s.value)}>{s.label}</Chip>)}
@@ -140,11 +140,12 @@ function Ask() {
           {showFilters && <FilterPanel value={filters} onChange={setFilters} />}
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }}
             className="flex items-end gap-2 bg-bg-2 rounded-[22px] pl-4 pr-1.5 py-1.5 shadow-[var(--shadow)] border border-sep">
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1} placeholder="Ask a question about freefall fire safety"
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } }}
-              className="flex-1 bg-transparent outline-none resize-none t-body py-1.5 max-h-32 placeholder:text-label-2" />
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1} placeholder="Ask about freefall fire safety"
+              enterKeyHint="send" aria-label="Your question"
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); ask(input); } }}
+              className="flex-1 min-w-0 bg-transparent outline-none resize-none t-body py-1.5 max-h-32 [field-sizing:content] placeholder:text-label-2" />
             <button type="submit" disabled={busy || input.trim().length < 3} aria-label="Send"
-              className="grid place-items-center w-8 h-8 rounded-full bg-tint text-on-tint disabled:opacity-30 btn-press shrink-0">
+              className="grid place-items-center w-9 h-9 rounded-full bg-tint text-on-tint disabled:opacity-30 btn-press shrink-0">
               <Icon name="arrowUp" size={18} stroke={2.6} />
             </button>
           </form>
@@ -430,7 +431,7 @@ function ActionBar({ t }: { t: Turn }) {
       : `Q: ${t.q}\n\n${t.text}\n\nSources:\n${t.passages.map((p, i) => `[${i + 1}] ${p.title} (${p.year}) ${p.url}`).join("\n")}`;
     try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(""), 1500); } catch {}
   };
-  const btn = "inline-flex items-center gap-1 h-7 px-2 rounded-full t-cap btn-press hover:bg-fill";
+  const btn = "inline-flex items-center gap-1 h-9 sm:h-7 px-2 rounded-full t-cap btn-press hover:bg-fill";
   return (
     <div className="mt-3">
       <div className="flex flex-wrap items-center gap-1 text-label-2">

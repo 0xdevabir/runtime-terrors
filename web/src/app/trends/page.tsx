@@ -50,9 +50,9 @@ export default function TrendsPage() {
                   <div className="t-headline">Reports per year by {DIMS.find((d) => d.value === dim)!.label.toLowerCase()}</div>
                   <div className="t-foot text-label-2">Top {MAX_SERIES} by total · tap legend to hide</div>
                 </div>
-                <div className="flex gap-2">
-                  <Segmented size="sm" className="w-[260px]" value={dim} onChange={(v) => { setDim(v); setHidden(new Set()); }} options={DIMS} />
-                  <Segmented size="sm" className="w-[150px]" value={mode} onChange={setMode} options={[{ value: "count", label: "Yearly" }, { value: "cum", label: "Cumulative" }]} />
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Segmented size="sm" className="w-full sm:w-[260px]" value={dim} onChange={(v) => { setDim(v); setHidden(new Set()); }} options={DIMS} />
+                  <Segmented size="sm" className="w-full sm:w-[150px]" value={mode} onChange={setMode} options={[{ value: "count", label: "Yearly" }, { value: "cum", label: "Cumulative" }]} />
                 </div>
               </div>
               <div className="mb-3"><Legend items={all} onToggle={toggle} hidden={hidden} /></div>

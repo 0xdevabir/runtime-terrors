@@ -242,7 +242,7 @@ function CustomEditor({ p, onChange }: { p: MissionProfile; onChange: (p: Missio
     <Section header="Mission profile" footer={`Microgravity time is the remainder: ${p.microgravity_days} days. Reference: ISS 21% O₂ at 101.3 kPa (14.7 psia); Artemis exploration atmosphere 34% O₂ at 56.5 kPa (8.2 psia).`}>
       <div className="row">
         <span className="flex-1 t-body">Destination</span>
-        <Segmented size="sm" className="w-[220px]" value={p.destination} onChange={(v) => set("destination", v)} options={["LEO", "Moon", "Mars"].map((d) => ({ value: d, label: d }))} />
+        <Segmented size="sm" className="w-[168px] sm:w-[220px] shrink-0" value={p.destination} onChange={(v) => set("destination", v)} options={["LEO", "Moon", "Mars"].map((d) => ({ value: d, label: d }))} />
       </div>
       {sliders.map((s) => (
         <label key={s.k} className="row block">

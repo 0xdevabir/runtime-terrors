@@ -49,7 +49,7 @@ export default function Home() {
         className="flex items-center gap-2 bg-bg-2 rounded-[22px] pl-5 pr-2 h-[60px] shadow-[var(--shadow)] ring-[0.5px] ring-sep mb-3 anim-rise">
         <span className="text-tint"><Icon name="sparkles" size={22} /></span>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything about fire in space…"
-          className="flex-1 bg-transparent outline-none t-body placeholder:text-label-3 min-w-0" />
+          enterKeyHint="send" aria-label="Your question" className="flex-1 bg-transparent outline-none t-body placeholder:text-label-3 min-w-0" />
         <button type="submit" disabled={!q.trim()} aria-label="Ask"
           className="grid place-items-center w-11 h-11 rounded-full bg-tint text-on-tint disabled:opacity-25 btn-press">
           <Icon name="arrowUp" size={20} stroke={2.4} />
@@ -68,8 +68,8 @@ export default function Home() {
       {error ? <div className="mb-8"><ErrorNote error={error} /></div> : null}
 
       {/* What's inside, as a flow: reports → findings → connected concepts */}
-      <div className="bg-bg-2 rounded-[22px] ring-[0.5px] ring-sep p-5 mb-10">
-        <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 text-center">
+      <div className="bg-bg-2 rounded-[22px] ring-[0.5px] ring-sep p-4 sm:p-5 mb-10">
+        <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1 sm:gap-2 text-center">
           {[
             { v: s?.papers, l: "NASA reports" },
             { v: s?.findings, l: "quoted findings" },
@@ -78,7 +78,7 @@ export default function Home() {
             ...(i ? [<Icon key={`a${i}`} name="chevron" size={16} stroke={2.4} className="text-label-3" />] : []),
             <div key={x.l} className="min-w-0">
               {x.v != null
-                ? <div className="text-[30px] leading-none font-bold tracking-tight tabular-nums">{x.v.toLocaleString()}</div>
+                ? <div className="text-[24px] sm:text-[30px] leading-none font-bold tracking-tight tabular-nums">{x.v.toLocaleString()}</div>
                 : <Skeleton h={30} w="60%" className="mx-auto" />}
               <div className="t-foot text-label-2 mt-1.5">{x.l}</div>
             </div>,

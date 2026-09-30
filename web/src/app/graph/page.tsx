@@ -43,6 +43,51 @@ function cssVar(name: string) {
   return c || "#888";
 }
 
+/** Links always run platform → fuel → condition → outcome → geometry, so lay concepts out in those columns. */
+const COL: Record<string, number> = { platform: 0, fuel: 1, condition: 2, countermeasure: 2, species: 2, outcome: 3, geometry: 4 };
+const RANK: Record<string, number> = { countermeasure: 1, species: 2 };
+const COL_W = 300, ROW_H = 46;
+
+/** Column positions, with each column ordered by its neighbours' average height (barycentre sweeps) to untangle lines. */
+function flowLayout(nodes: GNode[], edges: GEdge[]) {
+  const cols = new Map<number, GNode[]>();
+  for (const n of nodes) { const c = COL[n.type] ?? 2; cols.set(c, [...(cols.get(c) ?? []), n]); }
+  const keys = [...cols.keys()].sort((a, b) => a - b);
+  const y = new Map<string, number>();
+  const place = (list: GNode[]) => {
+    let row = 0;
+    list.forEach((n, i) => { if (i && list[i - 1].type !== n.type) row += 0.6; y.set(n.id, row++); });
+    const mid = (row - 1) / 2;
+    list.forEach((n) => y.set(n.id, (y.get(n.id)! - mid) * ROW_H));
+  };
+  const byRank = (a: GNode, b: GNode) => (RANK[a.type] ?? 0) - (RANK[b.type] ?? 0);
+  keys.forEach((k) => place(cols.get(k)!.sort((a, b) => byRank(a, b) || b.papers - a.papers)));
+  const type = new Map(nodes.map((n) => [n.id, n.type]));
+  const nb = new Map<string, [string, number][]>();
+  for (const e of edges) {
+    nb.set(e.source, [...(nb.get(e.source) ?? []), [e.target, e.paper_count]]);
+    nb.set(e.target, [...(nb.get(e.target) ?? []), [e.source, e.paper_count]]);
+  }
+  for (let pass = 0; pass < 8; pass++) {
+    for (const k of pass % 2 ? [...keys].reverse() : keys) {
+      const bary = new Map<string, number>();
+      for (const n of cols.get(k)!) {
+        const ns = (nb.get(n.id) ?? []).filter(([o]) => (COL[type.get(o)!] ?? 2) !== k);
+        const w = ns.reduce((s, [, p]) => s + p, 0);
+        bary.set(n.id, w ? ns.reduce((s, [o, p]) => s + y.get(o)! * p, 0) / w : y.get(n.id)!);
+      }
+      place(cols.get(k)!.sort((a, b) => byRank(a, b) || bary.get(a.id)! - bary.get(b.id)!));
+    }
+  }
+  const pos = Object.fromEntries(nodes.map((n) => [n.id, { x: keys.indexOf(COL[n.type] ?? 2) * COL_W, y: y.get(n.id)! }]));
+  const top = Math.min(...Object.values(pos).map((p) => p.y)) - 56;
+  const headers = keys.map((k, i) => ({
+    id: `hdr:${k}`, x: i * COL_W, y: top,
+    label: [...new Set(cols.get(k)!.map((n) => TYPE_META[n.type]?.label ?? n.type))].join(" · ").toUpperCase(),
+  }));
+  return { pos, headers };
+}
+
 function Graph() {
   const params = useSearchParams();
   const router = useRouter();
@@ -61,7 +106,10 @@ function Graph() {
   const [sel, setSel] = useState<{ kind: "node"; d: NodeDetail } | { kind: "edge"; d: EdgeDetail } | null>(null);
   const [query, setQuery] = useState("");
   const [themeTick, setThemeTick] = useState(0);
-  const [hint, setHint] = useState(true);
+  const [view, setView] = useState<"flow" | "web">("flow");
+  const [linkMode, setLinkMode] = useState<"key" | "all">("key");
+  const [topN, setTopN] = useState<"25" | "50" | "all">("25");
+  const [shown, setShown] = useState({ nodes: 0, edges: 0, hidden: 0 });
   const box = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   const { entities, label } = useEntities();
@@ -104,22 +152,56 @@ function Graph() {
       const ink = cssVar("--label"), ink2 = cssVar("--label-2"), surface = cssVar("--bg-2"), faint = cssVar("--label-3"), tint = cssVar("--tint");
       const font = getComputedStyle(document.body).fontFamily;
       const theme = (c?: number) => (c == null ? ink2 : cssVar(`--series-${(c % 8) + 1}`));
-      const maxP = Math.max(...data.nodes.map((n) => n.papers), 1);
-      const maxE = Math.max(...data.edges.map((e) => e.paper_count), 1);
-      // label only the ~18 biggest concepts up front; the rest appear on hover, tap or zoom
-      const labelMin = [...data.nodes].map((n) => n.papers).sort((a, b) => b - a)[Math.min(17, data.nodes.length - 1)] ?? 0;
+      // trim the overview to the most-reported concepts; a focus or path shows everything it asked for
+      let nodes = data.nodes;
+      if (!focus && !pathParam && topN !== "all") {
+        const rank = new Map<string, number>(), seen: Record<string, number> = {};
+        [...nodes].sort((a, b) => b.papers - a.papers).forEach((n) => rank.set(n.id, (seen[n.type] = (seen[n.type] ?? -1) + 1)));
+        // take the leaders of every kind in turn, so no column empties out
+        const keep = new Set([...nodes].sort((a, b) => rank.get(a.id)! - rank.get(b.id)! || b.papers - a.papers).slice(0, +topN).map((n) => n.id));
+        nodes = nodes.filter((n) => keep.has(n.id) || lit.has(n.id));
+      }
+      const ids = new Set(nodes.map((n) => n.id));
+      const edges = data.edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+      const linked = new Set(edges.flatMap((e) => [e.source, e.target]));
+      nodes = nodes.filter((n) => linked.has(n.id) || n.id === focus || lit.has(n.id));
+      // "key links": each concept keeps only its two best-supported links; the rest show on hover
+      const key = new Set<string>();
+      if (linkMode === "all" || pathParam) edges.forEach((e) => key.add(e.id));
+      else {
+        const byNode = new Map<string, GEdge[]>();
+        for (const e of edges) for (const id of [e.source, e.target]) byNode.set(id, [...(byNode.get(id) ?? []), e]);
+        byNode.forEach((l) => l.sort((a, b) => b.paper_count - a.paper_count).slice(0, 2).forEach((e) => key.add(e.id)));
+        edges.forEach((e) => { if (e.source === focus || e.target === focus) key.add(e.id); });
+      }
+      setShown({ nodes: nodes.length, edges: key.size, hidden: edges.length - key.size });
+
+      const flow = view === "flow" ? flowLayout(nodes, edges) : null;
+      const maxP = Math.max(...nodes.map((n) => n.papers), 1);
+      const maxE = Math.max(...edges.map((e) => e.paper_count), 1);
+      // web view labels only the ~18 biggest concepts up front; the rest appear on hover, tap or zoom
+      const labelMin = flow ? 0 : [...nodes].map((n) => n.papers).sort((a, b) => b - a)[Math.min(17, nodes.length - 1)] ?? 0;
       cyRef.current?.destroy();
       const cy = cytoscape({
         container: box.current,
         elements: [
-          ...data.nodes.map((n) => ({ classes: n.papers >= labelMin || lit.has(n.id) || n.id === focus ? "named" : "", data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: 14 + 42 * Math.sqrt(n.papers / maxP), color: colorBy === "theme" ? theme(n.community) : col[n.type] ?? ink2 } })),
-          ...data.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, w: 1 + 4 * Math.sqrt(e.paper_count / maxE), verb: verb(e.relation, e.majority), color: e.relation === "affects" && e.majority && dir[e.majority] ? dir[e.majority] : faint, rel: e.relation } })),
+          ...nodes.map((n) => ({ classes: n.papers >= labelMin || lit.has(n.id) || n.id === focus ? "named" : "", position: flow?.pos[n.id], data: { id: n.id, label: n.label, type: n.type, papers: n.papers, size: flow ? 12 + 26 * Math.sqrt(n.papers / maxP) : 14 + 42 * Math.sqrt(n.papers / maxP), color: colorBy === "theme" ? theme(n.community) : col[n.type] ?? ink2 } })),
+          ...edges.map((e) => ({ classes: key.has(e.id) ? "" : "weak", data: { id: e.id, source: e.source, target: e.target, w: 1 + 4 * Math.sqrt(e.paper_count / maxE), verb: verb(e.relation, e.majority), color: e.relation === "affects" && e.majority && dir[e.majority] ? dir[e.majority] : faint, rel: e.relation } })),
+          ...(flow?.headers ?? []).map((h) => ({ classes: "hdr", position: { x: h.x, y: h.y }, data: { id: h.id, label: h.label } })),
         ],
         style: [
           { selector: "node", style: { width: "data(size)", height: "data(size)", "background-color": "data(color)", "border-width": 2, "border-color": surface, label: "", "font-size": 11, "font-weight": 500, "font-family": font, color: ink, "text-valign": "bottom", "text-margin-y": 5, "text-wrap": "ellipsis", "text-max-width": "120px", "text-outline-color": surface, "text-outline-width": 2.5, "min-zoomed-font-size": 8, "transition-property": "opacity", "transition-duration": 150 } as never },
           { selector: "node.named, node.talk, node.zoomed", style: { label: "data(label)" } },
+          ...(flow ? [
+            // flow view: every dot labelled beside it, in the gap before the next column
+            { selector: "node", style: { "text-valign": "center", "text-halign": "right", "text-margin-x": 7, "text-margin-y": 0, "text-max-width": `${COL_W - 110}px`, "font-size": 12, "text-outline-width": 0, "text-background-color": surface, "text-background-opacity": 0.85, "text-background-padding": "2px", "text-background-shape": "roundrectangle" } as never },
+            { selector: "node.hdr", style: { width: 1, height: 1, "background-opacity": 0, "border-width": 0, label: "data(label)", "text-halign": "center", "text-margin-x": 0, "font-size": 10.5, "font-weight": 700, color: ink2, "text-max-width": `${COL_W - 40}px`, "text-wrap": "wrap", events: "no" } as never },
+          ] : []),
           { selector: "edge", style: { width: "data(w)", "line-color": "data(color)", "curve-style": "bezier", opacity: 0.45, "target-arrow-shape": "none", "transition-property": "opacity", "transition-duration": 150 } as never },
           { selector: "edge[rel = 'affects']", style: { "target-arrow-shape": "triangle", "target-arrow-color": "data(color)", "arrow-scale": 0.8, opacity: 0.7 } },
+          // weaker links stay out of the way until their concept is in focus
+          { selector: "edge.weak", style: { display: "none" } },
+          { selector: "edge.weak.talk", style: { display: "element" } },
           // show the plain-language verb on links that are in focus
           { selector: "edge.talk", style: { label: "data(verb)", "font-size": 10, "font-weight": 600, "font-family": font, color: ink, "text-background-color": surface, "text-background-opacity": 0.92, "text-background-padding": "3px", "text-background-shape": "roundrectangle", "text-rotation": "autorotate", opacity: 1 } as never },
           { selector: ".dim", style: { opacity: 0.08 } },
@@ -127,14 +209,16 @@ function Graph() {
           { selector: "node:selected", style: { "border-color": tint, "border-width": 4 } },
           { selector: "edge:selected", style: { opacity: 1, "line-color": tint, "target-arrow-color": tint } },
         ],
-        layout: { name: "fcose", animate: false, animationDuration: 600, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true, fit: true, padding: 40 } as never,
+        layout: (flow
+          ? { name: "preset", fit: true, padding: 64 }
+          : { name: "fcose", animate: false, quality: "default", nodeRepulsion: 11000, idealEdgeLength: 110, nodeSeparation: 70, randomize: true, packComponents: true, fit: true, padding: 40 }) as never,
         wheelSensitivity: 0.25,
         minZoom: 0.2,
         maxZoom: 3,
       });
       let pinned = false;
       const spotlight = (els: Collection) => {
-        cy.elements().addClass("dim").removeClass("talk");
+        cy.elements().not(".hdr").addClass("dim").removeClass("talk");
         els.nodes().addClass("talk");
         els.removeClass("dim");
         els.edges().addClass("talk");
@@ -142,7 +226,7 @@ function Graph() {
       const reset = () => {
         cy.elements().removeClass("dim talk");
         if (lit.size) {
-          cy.elements().addClass("dim");
+          cy.elements().not(".hdr").addClass("dim");
           const on = cy.nodes().filter((n) => lit.has(n.id()));
           on.removeClass("dim").addClass("hl");
           on.edgesWith(on).removeClass("dim").addClass("talk");
@@ -155,23 +239,23 @@ function Graph() {
       cy.on("mouseout", "node", () => { if (!pinned) reset(); });
       cy.on("tap", "node", async (e) => {
         pinned = true;
-        setHint(false);
         spotlight(e.target.closedNeighborhood());
         setSel({ kind: "node", d: await api<NodeDetail>(`/graph/node/${encodeURIComponent(e.target.id())}`) });
       });
       cy.on("tap", "edge", async (e) => {
         pinned = true;
-        setHint(false);
         spotlight(e.target.union(e.target.connectedNodes()));
         setSel({ kind: "edge", d: await api<EdgeDetail>(`/graph/edge?id=${encodeURIComponent(e.target.id())}`) });
       });
+      // double-click drills into a concept's neighbourhood
+      cy.on("dbltap", "node", (e) => { setSel(null); router.push(`/graph?focus=${encodeURIComponent(e.target.id())}`); });
       cy.on("tap", (e) => { if (e.target === cy) { pinned = false; reset(); setSel(null); } });
       cy.on("unpin", () => { pinned = false; reset(); });
       cy.on("zoom", () => { const z = cy.zoom() > 1.3; if (z !== cy.scratch("_z")) { cy.scratch("_z", z); cy.nodes().toggleClass("zoomed", z); } });
       cyRef.current = cy;
     })();
     return () => { destroyed = true; };
-  }, [data, lit, focus, themeTick, colorBy]);
+  }, [data, lit, focus, pathParam, themeTick, colorBy, view, linkMode, topN, router]);
 
   useEffect(() => () => cyRef.current?.destroy(), []);
 
@@ -189,7 +273,7 @@ function Graph() {
   const selCls = "h-10 w-full rounded-xl bg-bg-2 ring-[0.5px] ring-sep px-3 t-sub";
   const toggle = (t: string) => setTypes((s) => { const n = new Set(s); if (n.has(t)) { if (n.size > 1) n.delete(t); } else n.add(t); return n; });
   const filtersOn = (yearFrom ? 1 : 0) + (yearTo ? 1 : 0) + (minPapers !== 3 ? 1 : 0) + (colorBy !== "type" ? 1 : 0);
-  const pill = "inline-flex items-center gap-2 h-9 pl-3.5 pr-1 rounded-full bg-accent/35 text-label t-foot font-semibold";
+  const pill = "shrink-0 whitespace-nowrap inline-flex items-center gap-2 h-9 pl-3.5 pr-1 rounded-full bg-accent/35 text-label t-foot font-semibold";
 
   return (
     <Page wide title="Knowledge Graph" subtitle="Each dot is a concept. Lines show what the research says links them.">
@@ -200,7 +284,7 @@ function Graph() {
             className="flex items-center gap-2 h-10 px-3 rounded-xl bg-bg-2 ring-[0.5px] ring-sep">
             <Icon name="search" size={17} className="text-label-2" stroke={2.2} />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a concept, e.g. soot"
-              className="flex-1 bg-transparent outline-none t-sub placeholder:text-label-3 min-w-0" />
+              enterKeyHint="search" aria-label="Find a concept" className="flex-1 bg-transparent outline-none t-sub placeholder:text-label-3 min-w-0" />
           </form>
           {matches.length > 0 && (
             <div className="absolute z-20 mt-1.5 w-full group shadow-[var(--shadow)] anim-pop">
@@ -214,7 +298,7 @@ function Graph() {
             </div>
           )}
         </div>
-        <div className="flex gap-2 md:ml-auto">
+        <div className="flex gap-2 md:ml-auto overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           <Chip onClick={() => setPanel("path")}><Icon name="link" size={14} />How are two linked?</Chip>
           <Chip onClick={() => setPanel("central")}><Icon name="target" size={14} />Key concepts</Chip>
           <Chip onClick={() => setPanel("filters")} active={filtersOn > 0}><Icon name="filter" size={14} />Filters{filtersOn ? ` · ${filtersOn}` : ""}</Chip>
@@ -253,12 +337,13 @@ function Graph() {
         {!data && !error && <div className="absolute inset-0 grid place-items-center t-sub text-label-2">Drawing the map…</div>}
         {error ? <div className="absolute inset-0 grid place-items-center t-sub text-label-2">Can&apos;t reach the API.</div> : null}
 
-        {hint && data && !error && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 material rounded-full pl-3.5 pr-1.5 h-9 flex items-center gap-2 ring-[0.5px] ring-sep t-foot text-label-2 anim-fade whitespace-nowrap">
-            <Icon name="info" size={15} />Hover or tap a dot to see its links
-            <button onClick={() => setHint(false)} className="grid place-items-center w-6 h-6 rounded-full hover:bg-fill" aria-label="Dismiss"><Icon name="xmark" size={11} stroke={2.6} /></button>
-          </div>
-        )}
+        <div className="absolute left-3 top-3 max-w-[calc(100%-80px)] flex flex-wrap gap-1.5 no-print">
+          <Segmented size="sm" className="material ring-[0.5px] ring-sep w-[120px]" value={view} onChange={setView} options={[{ value: "flow", label: "Flow" }, { value: "web", label: "Web" }]} />
+          <Segmented size="sm" className="material ring-[0.5px] ring-sep w-[160px]" value={linkMode} onChange={setLinkMode} options={[{ value: "key", label: "Key links" }, { value: "all", label: "All links" }]} />
+          {!focus && !pathParam && (
+            <Segmented size="sm" className="material ring-[0.5px] ring-sep w-[170px]" value={topN} onChange={setTopN} options={[{ value: "25", label: "Top 25" }, { value: "50", label: "50" }, { value: "all", label: "All" }]} />
+          )}
+        </div>
 
         {/* Legend: how to read it, in one glance */}
         <div className="absolute left-3 bottom-3 material rounded-2xl px-3.5 py-2.5 ring-[0.5px] ring-sep t-cap text-label-2 space-y-1.5 max-w-[calc(100%-80px)]">
@@ -267,6 +352,9 @@ function Graph() {
             <span className="inline-flex items-center gap-1.5"><span className="w-5 h-[3px] rounded" style={{ background: DIR_COLOR.decrease }} />lowers</span>
             <span className="inline-flex items-center gap-1.5"><span className="w-5 h-[3px] rounded bg-label-3" />other link</span>
             <span className="hidden sm:inline text-label-3">Bigger dot / thicker line = more reports</span>
+          </div>
+          <div className="hidden sm:block text-label-3">
+            Hover a dot to see all its links{shown.hidden > 0 ? ` (${shown.hidden} weaker ones are hidden)` : ""} · double-click to explore around it
           </div>
           {colorBy === "theme" && (
             <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -284,7 +372,7 @@ function Graph() {
           ))}
           <button onClick={() => cyRef.current?.fit(undefined, 30)} className="w-10 h-10 grid place-items-center text-label-2 hover:text-label hover:bg-fill" aria-label="Fit to screen"><Icon name="target" size={18} /></button>
         </div>
-        {data && <div className="absolute right-3 bottom-3 t-cap text-label-3 tabular-nums">{data.nodes.length} concepts · {data.edges.length} links</div>}
+        {data && <div className="hidden sm:block absolute right-3 bottom-3 t-cap text-label-3 tabular-nums">{shown.nodes} of {data.nodes.length} concepts · {shown.edges} of {data.edges.length} links</div>}
       </div>
 
       <Sheet open={!!sel} onClose={() => { setSel(null); cyRef.current?.emit("unpin"); }}

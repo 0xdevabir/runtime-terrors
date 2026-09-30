@@ -185,6 +185,29 @@ body {
   color: var(--label);
 }
 
+html {
+  /* no font inflation on rotate, no double-tap zoom delay; pinch zoom stays available */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+/* iOS Safari zooms the page when a focused field's text is under 16px. */
+@media (pointer: coarse), (max-width: 1023px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Phone tab bar height; it hides while the keyboard is up (Shell sets data-typing). */
+:root { --tabbar-h: 54px; --tabbar-space: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+@media (max-width: 1023px) {
+  html[data-typing] { --tabbar-space: 0px; }
+  html[data-typing] .tabbar { display: none; }
+}
+
 body {
   font-family: var(--font-sans);
   font-size: 17px;

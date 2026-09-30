@@ -142,7 +142,7 @@ function Ask() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } }}
               className="flex-1 bg-transparent outline-none resize-none t-body py-1.5 max-h-32 placeholder:text-label-2" />
             <button type="submit" disabled={busy || input.trim().length < 3} aria-label="Send"
-              className="grid place-items-center w-8 h-8 rounded-full bg-tint text-white disabled:opacity-30 btn-press shrink-0">
+              className="grid place-items-center w-8 h-8 rounded-full bg-tint text-on-tint disabled:opacity-30 btn-press shrink-0">
               <Icon name="arrowUp" size={18} stroke={2.6} />
             </button>
           </form>
@@ -194,7 +194,7 @@ function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number)
     <article className="mb-8 anim-pop">
       {/* question bubble */}
       <div className="flex justify-end mb-3">
-        <div className="max-w-[85%] bg-tint text-white rounded-[20px] rounded-br-[6px] px-4 py-2.5 t-body">{t.q}</div>
+        <div className="max-w-[85%] bg-tint text-on-tint rounded-[20px] rounded-br-[6px] px-4 py-2.5 t-body">{t.q}</div>
       </div>
 
       <div className="bg-bg-2 rounded-[20px] p-4 md:p-5">

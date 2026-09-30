@@ -280,7 +280,7 @@ function NodePanel({ d, onFocus }: { d: NodeDetail; onFocus: (id: string) => voi
         <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.papers}</div><div className="t-foot text-label-2">reports</div></div>
         <div className="bg-bg-2 rounded-2xl p-3"><div className="t-title2 tabular-nums">{d.flight_papers}</div><div className="t-foot text-label-2">from orbital flight</div></div>
       </div>
-      <button onClick={() => onFocus(d.id)} className="w-full h-11 rounded-xl bg-tint text-white t-headline mb-6 btn-press">Focus graph here</button>
+      <button onClick={() => onFocus(d.id)} className="w-full h-11 rounded-xl bg-tint text-on-tint t-headline mb-6 btn-press">Focus graph here</button>
       {d.consensus.length > 0 && (
         <Section header="Evidence groups">
           {d.consensus.slice(0, 5).map((c) => (
@@ -366,7 +366,7 @@ function PathFinder({ initial, onShow }: { initial: string; onShow: (ids: string
       <p className="t-foot text-label-2">How are two concepts connected in the literature? Paths prefer links backed by many reports.</p>
       <EntityPicker value={a} onChange={setA} placeholder="From (e.g. Elevated oxygen)" />
       <EntityPicker value={b} onChange={setB} placeholder="To (e.g. Flame spread rate)" />
-      <button onClick={run} disabled={!a || !b || a === b || busy} className="w-full h-11 rounded-xl bg-tint text-white t-headline btn-press disabled:opacity-40">
+      <button onClick={run} disabled={!a || !b || a === b || busy} className="w-full h-11 rounded-xl bg-tint text-on-tint t-headline btn-press disabled:opacity-40">
         {busy ? "Searching…" : "Find evidence paths"}
       </button>
       {res && res.length === 0 && <p className="t-sub text-label-2">No connecting evidence found.</p>}

@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DIRECTION_LABEL, STUDY_TYPE_LABEL, Strength } from "@/lib/api";
 import { Icon, IconName } from "./Icon";
+import { Logo } from "./Logo";
 
 /* ----------------------------------------------------------------- Page chrome
    Large title that collapses into a translucent inline nav bar on scroll. */
-export function Page({ title, subtitle, back, trailing, children, wide = false, toolbar }: {
+export function Page({ title, subtitle, back, trailing, children, wide = false, toolbar, brand = false }: {
   title: string; subtitle?: React.ReactNode; back?: { href?: string; label: string }; trailing?: React.ReactNode;
-  children: React.ReactNode; wide?: boolean; toolbar?: React.ReactNode;
+  children: React.ReactNode; wide?: boolean; toolbar?: React.ReactNode; brand?: boolean;
 }) {
   const sentinel = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -26,12 +27,16 @@ export function Page({ title, subtitle, back, trailing, children, wide = false, 
       <header className={`no-print sticky top-0 z-30 transition-[background,box-shadow] duration-200 ${collapsed ? "material hairline-b" : ""}`}>
         <div className={`mx-auto ${wide ? "max-w-[1400px]" : "max-w-[980px]"} h-[52px] px-4 lg:px-8 grid grid-cols-[1fr_auto_1fr] items-center`}>
           <div className="min-w-0">
-            {back && (
+            {back ? (
               <button onClick={() => (back.href ? router.push(back.href) : router.back())}
                 className="flex items-center -ml-2 text-tint t-body btn-press">
                 <Icon name="chevronLeft" size={26} stroke={2.2} />
                 <span className="truncate">{back.label}</span>
               </button>
+            ) : (
+              <Link href="/" className="lg:hidden inline-flex items-center" aria-label="Emberfall home">
+                <Logo size={28} />
+              </Link>
             )}
           </div>
           <div className={`t-headline truncate max-w-[50vw] transition-opacity duration-200 ${collapsed ? "opacity-100" : "opacity-0"}`}>{title}</div>
@@ -40,7 +45,17 @@ export function Page({ title, subtitle, back, trailing, children, wide = false, 
       </header>
       <div className={`mx-auto ${wide ? "max-w-[1400px]" : "max-w-[980px]"} px-4 lg:px-8 print-full`}>
         <div className="pt-1 pb-4">
-          <h1 className="t-large">{title}</h1>
+          {brand ? (
+            <div className="flex items-center gap-3">
+              <span className="lg:hidden"><Logo size={44} /></span>
+              <div>
+                <h1 className="t-large leading-tight">{title}</h1>
+                <div className="t-foot text-label-2 mt-0.5 lg:hidden">Flame in Freefall</div>
+              </div>
+            </div>
+          ) : (
+            <h1 className="t-large">{title}</h1>
+          )}
           {subtitle && <div className="t-sub text-label-2 mt-1 max-w-[720px]">{subtitle}</div>}
           <div ref={sentinel} />
         </div>

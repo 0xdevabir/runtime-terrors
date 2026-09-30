@@ -207,7 +207,7 @@ function RiskCard({ r, rank, open, onToggle }: { r: MissionRisk; rank: number; o
           <div className="t-cap text-label-2">Evidence by condition: {Object.entries(r.evidence.by_condition).map(([k, v]) => `${label(k)} ${v}`).join(" · ")}</div>
         )}
         <Link href={`/ask?q=${encodeURIComponent(`What are the main findings about ${r.name.toLowerCase()} in microgravity and which countermeasures work?`)}`}
-          className="no-print inline-flex items-center gap-1.5 h-9 px-4 mt-4 rounded-full bg-tint text-white t-sub font-semibold btn-press">
+          className="no-print inline-flex items-center gap-1.5 h-9 px-4 mt-4 rounded-full bg-tint text-on-tint t-sub font-semibold btn-press">
           <Icon name="sparkles" size={15} />Ask about this risk
         </Link>
       </div>

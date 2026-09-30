@@ -121,7 +121,7 @@ function Detail({ id }: { id: string }) {
       )}
 
       <div className="flex gap-2 mb-6">
-        <Link href={`/ask?q=${encodeURIComponent(q)}`} className="flex-1 h-11 rounded-xl bg-tint text-white t-headline grid place-items-center btn-press">Ask about this</Link>
+        <Link href={`/ask?q=${encodeURIComponent(q)}`} className="flex-1 h-11 rounded-xl bg-tint text-on-tint t-headline grid place-items-center btn-press">Ask about this</Link>
         <Link href={`/graph?focus=${encodeURIComponent(c.outcome)}&lit=${encodeURIComponent([c.condition, c.outcome, c.geometry].filter(Boolean).join(","))}`}
           className="h-11 px-4 rounded-xl bg-fill text-tint t-headline grid place-items-center btn-press">Graph</Link>
       </div>

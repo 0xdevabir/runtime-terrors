@@ -81,7 +81,7 @@ export default function HypothesesPage() {
                       ))}
                     </div>
                     <Link href={`/ask?q=${encodeURIComponent(`Is there evidence linking ${h.a_label} and ${h.c_label} in microgravity combustion?`)}`}
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-tint text-white t-sub font-semibold btn-press">
+                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-tint text-on-tint t-sub font-semibold btn-press">
                       <Icon name="sparkles" size={15} />Check the literature
                     </Link>
                   </div>

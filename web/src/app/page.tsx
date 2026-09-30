@@ -45,7 +45,7 @@ export default function Home() {
   const p = PERSONAS.find((x) => x.id === persona)!;
 
   return (
-    <Page title="Emberfall" subtitle={<>AI-powered fire safety insights from microgravity combustion data — ask, explore, and see where the evidence is strong, conflicting, or missing across {s ? s.papers.toLocaleString() : "NASA"} NTRS reports.</>}>
+    <Page brand title="Emberfall" subtitle={<>AI-powered fire safety insights from microgravity combustion data — ask, explore, and see where the evidence is strong, conflicting, or missing across {s ? s.papers.toLocaleString() : "NASA"} NTRS reports.</>}>
       {/* Ask bar */}
       <form onSubmit={(e) => { e.preventDefault(); go(q); }}
         className="flex items-center gap-2 bg-bg-2 rounded-2xl pl-4 pr-2 h-14 shadow-[var(--shadow)] mb-3">
@@ -53,7 +53,7 @@ export default function Home() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about freefall fire safety…"
           className="flex-1 bg-transparent outline-none t-body placeholder:text-label-2 min-w-0" />
         <button type="submit" disabled={!q.trim()} aria-label="Ask"
-          className="grid place-items-center w-10 h-10 rounded-full bg-tint text-white disabled:opacity-30 btn-press">
+          className="grid place-items-center w-10 h-10 rounded-full bg-tint text-on-tint disabled:opacity-30 btn-press">
           <Icon name="arrowUp" size={20} stroke={2.4} />
         </button>
       </form>

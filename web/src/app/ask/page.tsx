@@ -72,6 +72,8 @@ function Ask() {
       const d = JSON.parse((e as MessageEvent).data);
       update(id, (t) => ({ text: t.text + d.text }));
     });
+    // a model failed mid-answer and the backend is retrying with the next one: drop the partial text
+    es.addEventListener("reset", () => update(id, { text: "" }));
     es.addEventListener("done", (e) => {
       const d = JSON.parse((e as MessageEvent).data);
       update(id, { status: "done", mode: d.mode, refused: d.refused, citations: d.citations, invalid: d.invalid_citations,

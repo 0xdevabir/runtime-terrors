@@ -1,7 +1,8 @@
 """Question answering over the knowledge base.
 
 Two modes, same event protocol:
-  * LLM (GEMINI_API_KEY or ANTHROPIC_API_KEY set; Gemini wins if both, EMBER_LLM overrides):
+  * LLM (GEMINI_API_KEY, ANTHROPIC_API_KEY or GROQ_API_KEY set; Gemini > Claude > Groq, EMBER_LLM overrides;
+    if the chosen provider fails, the other configured ones are tried in turn, Groq first):
     grounded, persona-aware generation that cites
     retrieved passages with [n] markers; citations are validated afterwards.
   * Extractive (no key): selects the best-supported sentences from retrieved
@@ -31,6 +32,8 @@ from pipeline.paths import LOG_DIR
 MODEL = os.environ.get("EMBER_ANSWER_MODEL", "claude-opus-5-5")
 GEMINI_MODEL = os.environ.get("EMBER_GEMINI_MODEL", "gemini-flash-latest")
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
+GROQ_MODEL = os.environ.get("EMBER_GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 CITE = re.compile(r"\[(\d{1,2})\]")
 MAJORITY_PHRASE = {"decrease": "a decrease", "increase": "an increase", "no_change": "no change", "mixed": "mixed effects"}
@@ -80,14 +83,28 @@ def _gemini_key() -> str | None:
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
 
+def _available() -> dict[str, bool]:
+    return {"gemini": bool(_gemini_key()),
+            "claude": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")),
+            "groq": bool(os.environ.get("GROQ_API_KEY"))}
+
+
 def llm_provider() -> str | None:
-    """'gemini', 'claude' or None (extractive). EMBER_LLM=gemini|claude forces one if its key is set."""
-    have = {"gemini": bool(_gemini_key()),
-            "claude": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))}
+    """'gemini', 'claude', 'groq' or None (extractive). EMBER_LLM=gemini|claude|groq forces one if its key is set."""
+    have = _available()
     forced = os.environ.get("EMBER_LLM", "").lower()
     if forced in have:
         return forced if have[forced] else None
     return next((p for p, ok in have.items() if ok), None)
+
+
+def llm_chain() -> list[str]:
+    """The primary provider, then every other configured one as a backup (Groq first)."""
+    primary = llm_provider()
+    if not primary:
+        return []
+    have = _available()
+    return [primary] + [p for p in ("groq", "gemini", "claude") if have[p] and p != primary]
 
 
 def llm_available() -> bool:
@@ -362,15 +379,28 @@ async def answer(kb: KB, q: str, persona: str = "scientist", k: int = 8, filters
         for tok in re.findall(r"\S+\s*|\n", text):
             yield {"event": "token", "data": {"text": tok}}
     else:
-        try:
-            stream = gemini_stream if mode == "gemini" else claude_stream
-            async for tok in stream(q, persona, passages, history):
-                text += tok
-                yield {"event": "token", "data": {"text": tok}}
-        except Exception as e:  # network / auth / free-tier rate-limit errors -> degrade gracefully
-            llm, mode = mode.capitalize(), "extractive"
+        streams = {"gemini": gemini_stream, "claude": claude_stream, "groq": groq_stream}
+        chain, failed = llm_chain(), []
+        for i, provider in enumerate(chain):
+            got = ""
+            try:
+                async for tok in streams[provider](q, persona, passages, history):
+                    got += tok
+                    yield {"event": "token", "data": {"text": tok}}
+                if not got.strip():
+                    raise RuntimeError("empty response")
+                mode, text = provider, text + got
+                break
+            except Exception as e:  # network / auth / free-tier rate-limit errors -> next provider, then extractive
+                failed.append(f"{provider.capitalize()} unavailable: {type(e).__name__}")
+                if i + 1 < len(chain):  # partial output (if any) stays visible; restart below it with the backup
+                    note = ("\n\n" if got else "") + f"_({failed[-1]}; switching to {chain[i + 1].capitalize()})_\n\n"
+                    text += got + note
+                    yield {"event": "token", "data": {"text": note}}
+        else:
+            mode = "extractive"
             text = extractive_answer(kb, r["retrieval_query"], persona, passages, entities) or "The indexed publications don't contain enough evidence to answer this."
-            yield {"event": "token", "data": {"text": f"_({llm} unavailable: {type(e).__name__}; showing extractive answer)_\n\n" + text}}
+            yield {"event": "token", "data": {"text": f"_({'; '.join(failed)}; showing extractive answer)_\n\n" + text}}
         refused = text.lstrip().startswith("The indexed publications don't contain enough evidence")
     # verification: every citation must point at a real retrieved passage, and should actually support its sentence
     cited = sorted({int(n) for n in CITE.findall(text)})
@@ -453,3 +483,26 @@ async def gemini_stream(q: str, persona: str, passages: list[dict], history: lis
                         yield part["text"]
             if finish in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "RECITATION"):
                 yield "\n\nThe indexed publications don't contain enough evidence to answer this safely."
+
+
+async def groq_stream(q: str, persona: str, passages: list[dict], history: list[dict] | None = None) -> AsyncIterator[str]:
+    import httpx
+
+    msgs = [{"role": "system", "content": SYSTEM.format(persona=PERSONAS[persona])}]
+    for h in history or []:
+        if h.get("q") and h.get("a"):
+            msgs += [{"role": "user", "content": h["q"]}, {"role": "assistant", "content": CITE.sub("", h["a"])[:2000]}]
+    msgs.append({"role": "user", "content": f"<passages>\n{_context(passages)}\n</passages>\n\nQuestion: {q}"})
+    body = {"model": GROQ_MODEL, "messages": msgs, "max_tokens": 4000, "stream": True}
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60, read=120)) as client:
+        async with client.stream("POST", GROQ_URL, json=body,
+                                 headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"}) as resp:
+            if resp.status_code != 200:
+                await resp.aread()
+                resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+                    continue
+                choice = (json.loads(line[5:]).get("choices") or [{}])[0]
+                if tok := (choice.get("delta") or {}).get("content"):
+                    yield tok

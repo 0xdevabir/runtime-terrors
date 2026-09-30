@@ -32,7 +32,7 @@ make up             # or: the whole stack in Docker (API :8000, web :3000)
 Then open http://localhost:3000. The built knowledge base (`data/kb/`) is committed, so
 the app runs from a fresh clone without rebuilding.
 
-**Optional: LLM answers.** Copy `backend/.env.example` to `backend/.env` and set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`.
+**Optional: LLM answers.** Copy `backend/.env.example` to `backend/.env` and set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, plus `GROQ_API_KEY` as an automatic backup if the primary LLM fails.
 Without a key the API still answers in extractive mode (cited sentences from retrieved passages).
 
 ## Architecture
@@ -51,7 +51,7 @@ data/raw/ntrs/fulltext/      per-report text
 data/kb/*.json|npy           the knowledge base (in memory, no database)
    │  app/main.py            FastAPI: /api/*, SSE streaming for /api/ask
    │  app/retrieval.py       hybrid BM25 + bge-small embeddings, reciprocal-rank fusion, entity boosts
-   │  app/answer.py          refusal gate -> Gemini / Claude or extractive answer -> citation check
+   │  app/answer.py          refusal gate -> Gemini / Claude (Groq backup) or extractive answer -> citation check
    │  app/mission.py         mission fire-risk scoring (freefall/partial-g days, cabin O₂ %, pressure)
    ▼
 web/ (Next.js 16, React 19, Tailwind v4, Cytoscape)   iOS-style UI, light/dark
@@ -62,7 +62,7 @@ web/ (Next.js 16, React 19, Tailwind v4, Cytoscape)   iOS-style UI, light/dark
 - **NASA data:** microgravity combustion and spacecraft fire-safety reports from the NASA Technical Reports Server (NTRS), with NTRS-extracted full text where available. See `SOURCES.md` and `data/AUDIT.md`.
 - **AI / retrieval:**
   - `BAAI/bge-small-en-v1.5` embeddings run locally with fastembed.
-  - An LLM is optional: Gemini (`gemini-flash-latest`) or Claude (`claude-opus-5-5`) writes answers; Claude also handles batch extraction. Force one with `EMBER_LLM=gemini|claude`.
+  - An LLM is optional: Gemini (`gemini-flash-latest`) or Claude (`claude-opus-5-5`) writes answers; Claude also handles batch extraction. Groq (`llama-3.3-70b-versatile`) is the automatic backup when the primary fails. Force one with `EMBER_LLM=gemini|claude|groq`.
   - Optional cross-encoder rerank via `EMBER_RERANK=1`.
 
 ## Evaluation

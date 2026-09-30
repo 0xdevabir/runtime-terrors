@@ -197,7 +197,7 @@ function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number)
             <span className="text-indigo"><Icon name="sparkles" size={16} /></span>
             {t.status === "retrieving" ? "Searching reports…" : t.status === "streaming" ? `Reading ${t.passages.length} sources…` : t.status === "error" ? "Something went wrong" : `Answer · ${t.passages.length} sources`}
           </div>
-          {t.mode && <Tag tone={t.mode === "extractive" ? "gray" : "purple"}>{t.mode === "gemini" ? "Gemini" : t.mode === "claude" ? "Claude" : "Extractive"}</Tag>}
+          {t.mode && <Tag tone={t.mode === "extractive" ? "gray" : "purple"}>{t.mode === "gemini" ? "Gemini" : t.mode === "claude" ? "Claude" : t.mode === "groq" ? "Groq" : "Extractive"}</Tag>}
         </div>
         {t.retrievalQuery && t.retrievalQuery !== t.q && (
           <div className="t-cap text-label-2 -mt-1 mb-3">
@@ -441,7 +441,7 @@ function ActionBar({ t }: { t: Turn }) {
   );
 }
 
-const YEARS = Array.from({ length: 2026 - 1960 + 1 }, (_, i) => 2026 - i);
+const YEARS = Array.from({ length: 2026 - 1955 + 1 }, (_, i) => 2026 - i);
 
 function FilterPanel({ value, onChange }: { value: Filters; onChange: (f: Filters) => void }) {
   const { entities } = useEntities();

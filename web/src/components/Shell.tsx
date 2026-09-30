@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useId } from "react";
 import { Icon, IconName } from "./Icon";
 import { PERSONAS, usePrefs } from "./prefs";
 
@@ -46,13 +47,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* iPadOS sidebar */}
       <aside className="no-print hidden lg:flex flex-col w-[280px] shrink-0 h-dvh sticky top-0 border-r border-sep bg-bg-2/60 backdrop-blur-xl">
         <div className="px-5 pt-6 pb-3">
-          <div className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5 group" aria-label="Emberfall home">
             <Logo />
             <div>
-              <div className="t-headline leading-tight">Emberfall</div>
+              <div className="t-headline leading-tight group-hover:text-tint transition-colors">Emberfall</div>
               <div className="t-foot text-label-2">Flame in Freefall</div>
             </div>
-          </div>
+          </Link>
         </div>
         <nav className="flex-1 overflow-y-auto no-scrollbar px-3 pb-4">
           {NAV.map((g) => (
@@ -111,16 +112,42 @@ export function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Emberfall mark — spherical freefall flame + orbit (matches app/icon.svg). */
 export function Logo({ size = 34 }: { size?: number }) {
+  const id = `ef${size}`;
   return (
-    <span className="grid place-items-center rounded-[9px] text-white shrink-0"
-      style={{ width: size, height: size, background: "linear-gradient(145deg,#5e5ce6,#007aff 55%,#30b0c7)" }}>
-      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-25 12 12)" />
-        <circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none" />
-        <circle cx="19.5" cy="8.4" r="1.3" fill="currentColor" stroke="none" />
+    <span className="grid place-items-center shrink-0 overflow-hidden rounded-[9px]"
+      style={{ width: size, height: size }} aria-hidden>
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <defs>
+          <radialGradient id={`${id}bg`} cx="50%" cy="45%" r="70%">
+            <stop offset="0%" stopColor="#2a1610" />
+            <stop offset="100%" stopColor="#0a0908" />
+          </radialGradient>
+          <radialGradient id={`${id}core`} cx="46%" cy="42%" r="55%">
+            <stop offset="0%" stopColor="#fff6d0" />
+            <stop offset="28%" stopColor="#ffd60a" />
+            <stop offset="58%" stopColor="#ff9f0a" />
+            <stop offset="100%" stopColor="#ff453a" />
+          </radialGradient>
+          <radialGradient id={`${id}glow`} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ff9f0a" stopOpacity="0.4" />
+            <stop offset="70%" stopColor="#ff453a" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#ff453a" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="32" height="32" fill={`url(#${id}bg)`} />
+        <circle cx="16" cy="16" r="13.5" fill={`url(#${id}glow)`} />
+        <circle cx="16" cy="16.2" r="8.2" fill={`url(#${id}core)`} />
+        <circle cx="14.8" cy="14.6" r="2.5" fill="#fff8e6" fillOpacity="0.92" />
+        <ellipse cx="16" cy="16" rx="11.8" ry="4" transform="rotate(-28 16 16)"
+          stroke="#ff9f0a" strokeOpacity="0.5" strokeWidth="1" fill="none" />
+        <circle cx="24" cy="9.4" r="1.05" fill="#ff9f0a" />
+        <circle cx="8" cy="22.2" r="0.8" fill="#ff453a" fillOpacity="0.9" />
+        <circle cx="22.6" cy="21.4" r="0.65" fill="#ffd60a" fillOpacity="0.85" />
       </svg>
     </span>
   );
 }
+
 

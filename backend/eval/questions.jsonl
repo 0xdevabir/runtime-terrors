@@ -1,0 +1,40 @@
+{"q": "How does spaceflight affect bone density and bone loss in mice?", "gold": "\\bbone|osteo|skelet"}
+{"q": "What happens to skeletal muscle mass during spaceflight or hindlimb unloading?", "gold": "muscle|atroph|unload"}
+{"q": "How do Arabidopsis roots grow and orient in microgravity?", "gold": "arabidopsis|root|gravitrop"}
+{"q": "Which genes change expression in Arabidopsis seedlings grown on the ISS?", "gold": "arabidopsis|seedling|plant"}
+{"q": "Does space radiation damage the central nervous system or cognition?", "gold": "radiation|brain|neuro|cogniti|heavy ion|hze"}
+{"q": "What are the effects of heavy ion radiation on the heart and cardiovascular system?", "gold": "cardi|heart|vascul|radiation"}
+{"q": "How does spaceflight change the immune system of astronauts or mice?", "gold": "immun|T cell|lymph|thym|spleen"}
+{"q": "Does microgravity increase bacterial virulence or antibiotic resistance?", "gold": "bacteri|virulen|salmonella|microb|biofilm|pseudomonas|staph"}
+{"q": "How does spaceflight affect the eye and retina?", "gold": "eye|retina|ocular|optic|vision"}
+{"q": "What happens to the liver of mice flown in space?", "gold": "liver|hepat"}
+{"q": "How does spaceflight affect Drosophila fruit flies?", "gold": "drosophila|fruit fl"}
+{"q": "What was learned about C. elegans in spaceflight?", "gold": "elegans|nematode|worm"}
+{"q": "How does spaceflight affect the gut microbiome?", "gold": "microbiom|microbiota|gut|intestin"}
+{"q": "What are the effects of microgravity on stem cells?", "gold": "stem cell|progenitor|mesenchymal"}
+{"q": "Does simulated microgravity affect osteoblast or osteoclast activity?", "gold": "osteoblast|osteoclast|bone|clinorot|simulated microgravity"}
+{"q": "What did the NASA Twins Study find?", "gold": "twin|astronaut|multi-?omic|inspiration4|crew"}
+{"q": "How does spaceflight affect mitochondria and oxidative stress?", "gold": "mitochond|oxidative|redox|ROS"}
+{"q": "What happens to the skin during spaceflight?", "gold": "\\bskin|dermal|wound"}
+{"q": "Does spaceflight affect reproduction or the testes and ovaries?", "gold": "reproduct|testi|ovar|sperm|fertil|embryo"}
+{"q": "How does microgravity affect plant cell walls and gravity sensing?", "gold": "cell wall|gravi|plant|statolith|amyloplast"}
+{"q": "What are the effects of hindlimb unloading on the cardiovascular system?", "gold": "unload|suspension|cardio|vascul|heart"}
+{"q": "Can exercise or other countermeasures prevent bone loss in space?", "gold": "countermeasure|exercise|bone|prevent|protect"}
+{"q": "How do fungi respond to the space station environment?", "gold": "fung|aspergillus|yeast|candida"}
+{"q": "What is the effect of spaceflight on the vestibular system and balance?", "gold": "vestib|otolith|balance|sensorimotor|inner ear"}
+{"q": "How do tardigrades or other extremophiles survive space conditions?", "gold": "tardigrad|extremophil|surviv|desiccat"}
+{"q": "What changes occur in the brain of mice after spaceflight?", "gold": "brain|neur|hippocamp|cortex|cerebr"}
+{"q": "How does low dose radiation affect DNA damage and repair?", "gold": "DNA|damage|repair|radiation|genom"}
+{"q": "What omics datasets from GeneLab describe spaceflight effects?", "gold": "genelab|omic|transcriptom|proteom|metabol"}
+{"q": "How is plant growth in space affected by light and the growth chamber?", "gold": "plant|growth|veggie|light|lettuce|crop"}
+{"q": "Does partial gravity like on the Moon or Mars protect muscle and bone?", "gold": "partial gravity|partial weight|mars|lunar|moon|muscle|bone"}
+{"q": "What is the effect of spaceflight on the thymus or T cell function?", "gold": "thym|T cell|T-cell|lymphocyte|immun"}
+{"q": "How does spaceflight affect wound healing?", "gold": "wound|heal|skin|regenerat"}
+{"q": "What happens to blood vessels and endothelial cells in microgravity?", "gold": "endotheli|vascul|vessel|arter"}
+{"q": "Does spaceflight change circadian rhythms or sleep in animals?", "gold": "circadian|clock|sleep|rhythm"}
+{"q": "What is the best recipe for chocolate chip cookies?", "unanswerable": true}
+{"q": "Who won the football world cup in 2018?", "unanswerable": true}
+{"q": "What is the current stock price of Tesla?", "unanswerable": true}
+{"q": "How do I configure a Kubernetes ingress controller?", "unanswerable": true}
+{"q": "What is the capital city of Australia?", "unanswerable": true}
+{"q": "Explain the rules of chess castling.", "unanswerable": true}

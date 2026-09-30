@@ -1,0 +1,5 @@
+[process] 572 papers (490 full text, 82 abstract-only), 17485 chunks
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 5 files:  20%|██        | 1/5 [00:00<00:03,  1.13it/s]Fetching 5 files:  40%|████      | 2/5 [00:01<00:01,  1.79it/s]Fetching 5 files: 100%|██████████| 5/5 [01:30<00:00, 21.36s/it]Fetching 5 files: 100%|██████████| 5/5 [01:30<00:00, 18.01s/it]
+/Users/mdabirhossain/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

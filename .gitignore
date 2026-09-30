@@ -1,0 +1,30 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.vercel/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Data: raw downloads and intermediates are reproducible (`make data`);
+# the built knowledge base in data/kb/ and the Claude cache in data/llm/ are kept
+# so the app runs straight from a clone.
+data/raw/
+data/*.log
+data/kb/papers_raw.json
+
+.DS_Store
+data/kb/emb_parts/

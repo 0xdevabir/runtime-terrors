@@ -1,0 +1,1 @@
+{"papers": 572, "full_text": 490, "chunks": 17485, "findings": 1882, "nodes": 126, "edges": 627, "contradictions": 49, "consensus": 48, "osdr_linked": 71, "llm_papers": 0, "years": [2010, 2025], "study_types": {"review": 17, "both": 113, "flight": 195, "ground_analog": 51, "ground": 196}, "quote_guard": {"rules_total": 1882, "rules_verified": 1882}}

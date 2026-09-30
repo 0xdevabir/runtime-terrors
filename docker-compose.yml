@@ -1,6 +1,6 @@
 # One-command local stack: API on :8000, web on :3000.
 #   docker compose up --build
-# Optional: put ANTHROPIC_API_KEY in backend/.env for Claude answers (extractive mode works without it).
+# Optional: put GEMINI_API_KEY (or ANTHROPIC_API_KEY) in backend/.env for LLM answers (extractive mode works without it).
 services:
   api:
     build:

@@ -149,7 +149,7 @@ function TurnView({ t, onCite, onAsk, followUp }: { t: Turn; onCite: (n: number)
             <span className="text-indigo"><Icon name="sparkles" size={16} /></span>
             {t.status === "retrieving" ? "Searching publications…" : t.status === "streaming" ? `Reading ${t.passages.length} sources…` : t.status === "error" ? "Something went wrong" : `Answer · ${t.passages.length} sources`}
           </div>
-          {t.mode && <Tag tone={t.mode === "claude" ? "purple" : "gray"}>{t.mode === "claude" ? "Claude" : "Extractive"}</Tag>}
+          {t.mode && <Tag tone={t.mode === "extractive" ? "gray" : "purple"}>{t.mode === "gemini" ? "Gemini" : t.mode === "claude" ? "Claude" : "Extractive"}</Tag>}
         </div>
         {t.retrievalQuery && t.retrievalQuery !== t.q && (
           <div className="t-cap text-label-2 -mt-1 mb-3">

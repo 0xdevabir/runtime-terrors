@@ -1,7 +1,8 @@
 """Question answering over the knowledge base.
 
 Two modes, same event protocol:
-  * Claude (ANTHROPIC_API_KEY set): grounded, persona-aware generation that cites
+  * LLM (GEMINI_API_KEY or ANTHROPIC_API_KEY set; Gemini wins if both, SBA_LLM overrides):
+    grounded, persona-aware generation that cites
     retrieved passages with [n] markers; citations are validated afterwards.
   * Extractive (no key): selects the best-supported sentences from retrieved
     passages and structured findings, each with its [n] citation.
@@ -28,6 +29,8 @@ from pipeline import ontology as O
 from pipeline.paths import LOG_DIR
 
 MODEL = os.environ.get("SBA_ANSWER_MODEL", "claude-opus-5-5")
+GEMINI_MODEL = os.environ.get("SBA_GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
 SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 CITE = re.compile(r"\[(\d{1,2})\]")
 MAJORITY_PHRASE = {"decrease": "a decrease", "increase": "an increase", "no_change": "no change", "mixed": "mixed effects"}
@@ -73,8 +76,22 @@ Rules:
 - Audience: you are answering for {persona}"""
 
 
+def _gemini_key() -> str | None:
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+
+def llm_provider() -> str | None:
+    """'gemini', 'claude' or None (extractive). SBA_LLM=gemini|claude forces one if its key is set."""
+    have = {"gemini": bool(_gemini_key()),
+            "claude": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))}
+    forced = os.environ.get("SBA_LLM", "").lower()
+    if forced in have:
+        return forced if have[forced] else None
+    return next((p for p, ok in have.items() if ok), None)
+
+
 def llm_available() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    return llm_provider() is not None
 
 
 def related_findings(kb: KB, entities: list[str], paper_ids: set[str], limit: int = 12) -> list[dict]:
@@ -318,7 +335,7 @@ async def answer(kb: KB, q: str, persona: str = "scientist", k: int = 8, filters
                                           "findings": [kb.finding_card(f["id"]) for f in related_findings(kb, entities, {p["paper_id"] for p in passages}, 8)],
                                           "panel": evidence_panel(kb, entities)}}
     refused = should_refuse(r["retrieval_query"], passages, entities)
-    mode = "claude" if llm_available() else "extractive"
+    mode = llm_provider() or "extractive"
     text = ""
     if refused and mode == "extractive":
         covered = ", ".join(n["label"] for n in sorted(kb.graph["nodes"], key=lambda n: -n["papers"])[:6])
@@ -346,13 +363,14 @@ async def answer(kb: KB, q: str, persona: str = "scientist", k: int = 8, filters
             yield {"event": "token", "data": {"text": tok}}
     else:
         try:
-            async for tok in claude_stream(q, persona, passages, history):
+            stream = gemini_stream if mode == "gemini" else claude_stream
+            async for tok in stream(q, persona, passages, history):
                 text += tok
                 yield {"event": "token", "data": {"text": tok}}
-        except Exception as e:  # network / auth errors -> degrade gracefully
-            mode = "extractive"
+        except Exception as e:  # network / auth / free-tier rate-limit errors -> degrade gracefully
+            llm, mode = mode.capitalize(), "extractive"
             text = extractive_answer(kb, r["retrieval_query"], persona, passages, entities) or "The indexed publications don't contain enough evidence to answer this."
-            yield {"event": "token", "data": {"text": f"_(Claude unavailable: {type(e).__name__}; showing extractive answer)_\n\n" + text}}
+            yield {"event": "token", "data": {"text": f"_({llm} unavailable: {type(e).__name__}; showing extractive answer)_\n\n" + text}}
         refused = text.lstrip().startswith("The indexed publications don't contain enough evidence")
     # verification: every citation must point at a real retrieved passage, and should actually support its sentence
     cited = sorted({int(n) for n in CITE.findall(text)})
@@ -405,3 +423,33 @@ async def claude_stream(q: str, persona: str, passages: list[dict], history: lis
         final = await stream.get_final_message()
         if final.stop_reason == "refusal":
             yield "\n\nThe indexed publications don't contain enough evidence to answer this safely."
+
+
+async def gemini_stream(q: str, persona: str, passages: list[dict], history: list[dict] | None = None) -> AsyncIterator[str]:
+    import httpx
+
+    contents = []
+    for h in history or []:
+        if h.get("q") and h.get("a"):
+            contents += [{"role": "user", "parts": [{"text": h["q"]}]},
+                         {"role": "model", "parts": [{"text": CITE.sub("", h["a"])[:2000]}]}]
+    contents.append({"role": "user", "parts": [{"text": f"<passages>\n{_context(passages)}\n</passages>\n\nQuestion: {q}"}]})
+    body = {"systemInstruction": {"parts": [{"text": SYSTEM.format(persona=PERSONAS[persona])}]},
+            "contents": contents, "generationConfig": {"maxOutputTokens": 8192}}
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60, read=120)) as client:
+        async with client.stream("POST", GEMINI_URL.format(model=GEMINI_MODEL), json=body,
+                                 headers={"x-goog-api-key": _gemini_key()}) as resp:
+            if resp.status_code != 200:
+                await resp.aread()
+                resp.raise_for_status()
+            finish = None
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                cand = (json.loads(line[5:]).get("candidates") or [{}])[0]
+                finish = cand.get("finishReason") or finish
+                for part in cand.get("content", {}).get("parts", []):
+                    if part.get("text") and not part.get("thought"):
+                        yield part["text"]
+            if finish in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "RECITATION"):
+                yield "\n\nThe indexed publications don't contain enough evidence to answer this safely."

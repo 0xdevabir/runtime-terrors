@@ -62,7 +62,7 @@ export type Hypothesis = {
 export type Stats = {
   papers: number; full_text: number; chunks: number; findings: number; nodes: number; edges: number; contradictions: number;
   consensus: number; osdr_linked: number; llm_papers: number; years: [number, number]; study_types: Record<string, number>;
-  quote_guard: Record<string, number>; llm: boolean; dense?: boolean; communities?: number; duplicates?: number;
+  quote_guard: Record<string, number>; llm: boolean; llm_provider?: "gemini" | "claude" | null; dense?: boolean; communities?: number; duplicates?: number;
   with_sample_size?: number; with_mission?: number;
   top: Record<string, { id: string; label: string; papers: number }[]>;
   contradictions_preview: Consensus[]; hypotheses_preview: Hypothesis[];

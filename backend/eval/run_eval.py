@@ -21,7 +21,7 @@ from pathlib import Path
 
 from eval.extraction import extraction_metrics
 
-from app.answer import answer, llm_available
+from app.answer import answer, llm_provider
 from app.kb import get_kb
 from pipeline.paths import KB_DIR
 
@@ -95,7 +95,7 @@ async def main() -> None:
     qg = kb.stats.get("quote_guard", {})
     out = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M"),
-        "mode": "claude" if llm_available() else "extractive",
+        "mode": llm_provider() or "extractive",
         "dense_retrieval": kb.embeddings is not None,
         "n_questions": len(rows), "n_answerable": len(ans), "n_unanswerable": len(un),
         "metrics": {

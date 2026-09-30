@@ -61,7 +61,7 @@ export default function EvalPage() {
       ) : !data ? <Skeleton h={220} /> : (
         <>
           <div className="flex flex-wrap items-center gap-2 mb-3 t-foot text-label-2">
-            <Tag tone={data.mode === "claude" ? "purple" : "gray"}>{data.mode === "claude" ? "Claude answers" : "Extractive answers"}</Tag>
+            <Tag tone={data.mode === "extractive" ? "gray" : "purple"}>{data.mode === "gemini" ? "Gemini answers" : data.mode === "claude" ? "Claude answers" : "Extractive answers"}</Tag>
             <Tag tone={data.dense_retrieval ? "blue" : "gray"}>{data.dense_retrieval ? "Hybrid BM25 + embeddings" : "BM25 only"}</Tag>
             {data.n_answerable} in-domain + {data.n_unanswerable} off-topic questions · run {data.generated_at}
           </div>

@@ -20,7 +20,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from app import export as X
 from app import mission as M
-from app.answer import DISCLAIMER, PERSONAS, answer, llm_available
+from app.answer import DISCLAIMER, PERSONAS, answer, llm_available, llm_provider
 from app.glossary import all_terms
 from app.kb import get_kb
 from app.retrieval import search as hybrid_search
@@ -69,7 +69,7 @@ def stats():
     kb = get_kb()
     top = lambda t, n: [{"id": x["id"], "label": x["label"], "papers": x["papers"]} for x in
                         sorted((x for x in kb.graph["nodes"] if x["type"] == t), key=lambda x: -x["papers"])[:n]]
-    return kb.stats | {"llm": llm_available(), "dense": kb.embedder is not None, "personas": list(PERSONAS), "top": {t: top(t, 8) for t in ("organism", "stressor", "tissue", "outcome")},
+    return kb.stats | {"llm": llm_available(), "llm_provider": llm_provider(), "dense": kb.embedder is not None, "personas": list(PERSONAS), "top": {t: top(t, 8) for t in ("organism", "stressor", "tissue", "outcome")},
                        "contradictions_preview": [c | {"label": _cons_label(c)} for c in kb.consensus if c["status"] == "contradictory"][:3],
                        "hypotheses_preview": kb.hypotheses[:3]}
 
@@ -199,7 +199,7 @@ def feedback(fb: Feedback):
 
 @app.get("/api/meta")
 def meta():
-    return {"disclaimer": DISCLAIMER, "personas": list(PERSONAS), "llm": llm_available()}
+    return {"disclaimer": DISCLAIMER, "personas": list(PERSONAS), "llm": llm_available(), "llm_provider": llm_provider()}
 
 
 # ------------------------------------------------------------------ graph

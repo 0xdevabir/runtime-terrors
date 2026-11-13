@@ -167,6 +167,7 @@ xychart-beta horizontal
 
 | Surface | What it does |
 |---|---|
+| **Explorer** | Cabin O₂ / pressure / flow / material sliders. Gradient-boosting regime classifier trained on quote-verified NTRS experiments; refuses out-of-envelope inputs; cites nearest reports. |
 | **Ask** | Hybrid BM25 + dense retrieval. Every sentence is cited `[n]` and verified. Includes claim-support scores, confidence, follow-up questions, filters, share links, and 👍/👎 feedback. |
 | **Reports** | Browse 1,334 NTRS reports. Filter by fuel, condition, geometry, study design, and experiment. Multi-level summaries and BibTeX / RIS / CSV export. |
 | **Graph** | Knowledge graph with 91 entities and 590 relations. Year filter, evidence paths between concepts, PNG/JSON export. |

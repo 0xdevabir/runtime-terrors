@@ -12,6 +12,7 @@ export type NavItem = { href: string; label: string; icon: IconName; desc: strin
 /** The few places most people need. Everything else lives under "More". */
 export const PRIMARY: NavItem[] = [
   { href: "/", label: "Home", icon: "house", desc: "Start here" },
+  { href: "/explorer", label: "Explorer", icon: "flask", desc: "Predict flame spread" },
   { href: "/ask", label: "Ask", icon: "sparkles", desc: "Get a cited answer" },
   { href: "/graph", label: "Graph", icon: "graph", desc: "See how ideas connect" },
   { href: "/papers", label: "Reports", icon: "books", desc: "Browse the library" },

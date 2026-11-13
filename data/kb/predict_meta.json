@@ -1,0 +1,88 @@
+{
+ "model": {
+  "type": "gradient_boosting",
+  "backend": "sklearn",
+  "n_train": 229,
+  "n_corpus": 934,
+  "cv_accuracy": 0.786,
+  "features": [
+   "oxygen_pct",
+   "pressure_kpa",
+   "flow_cm_s",
+   "material"
+  ],
+  "classes": [
+   "no_spread",
+   "marginal_spread",
+   "spread"
+  ],
+  "confusion_matrix": [
+   [
+    17,
+    3,
+    23
+   ],
+   [
+    2,
+    0,
+    10
+   ],
+   [
+    10,
+    1,
+    163
+   ]
+  ],
+  "materials": [
+   "fuel:pmma",
+   "fuel:cellulose",
+   "fuel:fabric",
+   "fuel:wire_insulation",
+   "fuel:foam",
+   "fuel:polymer",
+   "fuel:heptane",
+   "fuel:methane",
+   "fuel:ethylene",
+   "fuel:alcohol",
+   "other"
+  ]
+ },
+ "ranges": {
+  "oxygen_pct": {
+   "min": 13.0,
+   "max": 101.0
+  },
+  "pressure_kpa": {
+   "min": 1.9000000000000004,
+   "max": 795.0
+  },
+  "flow_cm_s": {
+   "min": 0.0,
+   "max": 11.0
+  }
+ },
+ "material_labels": {
+  "fuel:pmma": "PMMA",
+  "fuel:cellulose": "Cellulose",
+  "fuel:fabric": "Fabric / cotton",
+  "fuel:wire_insulation": "Wire insulation",
+  "fuel:foam": "Foam",
+  "fuel:polymer": "Polymer",
+  "fuel:heptane": "Heptane",
+  "fuel:methane": "Methane",
+  "fuel:ethylene": "Ethylene",
+  "fuel:alcohol": "Alcohol",
+  "other": "Other / unspecified"
+ },
+ "class_labels": {
+  "no_spread": "No spread",
+  "marginal_spread": "Marginal spread",
+  "spread": "Spreading flame"
+ },
+ "regime_counts": {
+  "spread": 651,
+  "no_spread": 218,
+  "marginal_spread": 65
+ },
+ "measured_o2_rows": 146
+}

@@ -33,7 +33,7 @@ const SUGGESTED: Record<string, string[]> = {
   ],
 };
 
-const EXPLORE = PRIMARY.filter((p) => ["/graph", "/papers", "/insights", "/mission"].includes(p.href));
+const EXPLORE = PRIMARY.filter((p) => ["/explorer", "/graph", "/papers", "/insights", "/mission"].includes(p.href));
 
 export default function Home() {
   const { persona } = usePrefs();

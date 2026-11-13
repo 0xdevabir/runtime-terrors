@@ -2,7 +2,7 @@
 # pass backend/.env to uv when present (ANTHROPIC_API_KEY etc.)
 RUN = uv run $$( [ -f .env ] && echo --env-file .env )
 
-.PHONY: help setup data fetch process extract collect build embed eval test label api web dev docker up
+.PHONY: help setup data fetch process extract collect build embed predict eval test label api web dev docker up
 
 help:
 	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /\t/' | column -t -s $$'\t'
@@ -31,6 +31,9 @@ build: ## Build KB: findings, graph, consensus/conflicts, gaps, trends, risks, h
 embed: ## (Re)compute dense passage embeddings only (~30 min on CPU; resumable, cached per block)
 	cd backend && uv run python -m pipeline.embed
 
+predict: ## Build experiments table + train flame-spread regime classifier for /explorer
+	cd backend && uv run python -m pipeline.predict_model
+
 
 test: ## Backend unit tests
 	cd backend && uv run --with pytest pytest -q
@@ -55,3 +58,4 @@ docker: ## Build the API image (bundles data/kb)
 
 up: ## Run the whole stack in Docker (API :8000, web :3000)
 	docker compose up --build
+

@@ -20,6 +20,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from app import export as X
 from app import mission as M
+from app import predict as P
 from app.answer import DISCLAIMER, PERSONAS, answer, llm_available, llm_provider
 from app.glossary import all_terms
 from app.kb import get_kb
@@ -455,6 +456,52 @@ def mission_preset(preset: str):
 @app.post("/api/mission")
 def mission_custom(p: Profile):
     return M.briefing(get_kb(), p.model_dump())
+
+
+# -------------------------------------------------------- flammability predict
+class PredictIn(BaseModel):
+    oxygen_pct: float = Field(21.0, ge=10, le=100)
+    pressure_kpa: float = Field(101.3, ge=5, le=2000)
+    flow_cm_s: float = Field(5.0, ge=0, le=100)
+    material: str = "fuel:pmma"
+
+
+@app.get("/api/predict/meta")
+def predict_meta():
+    try:
+        return P.meta()
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@app.get("/api/predict/materials")
+def predict_materials():
+    try:
+        return P.materials()
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@app.post("/api/predict")
+def predict(body: PredictIn):
+    try:
+        return P.predict(body.oxygen_pct, body.pressure_kpa, body.flow_cm_s, body.material)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@app.get("/api/predict/sweep")
+def predict_sweep(
+    material: str = "fuel:pmma",
+    pressure_kpa: float = 101.3,
+    flow_cm_s: float = 5.0,
+    o2_min: float = 15.0,
+    o2_max: float = 40.0,
+):
+    try:
+        return P.oxygen_sweep(pressure_kpa, flow_cm_s, material, o2_min, o2_max)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
 
 
 # ------------------------------------------------------------------- eval

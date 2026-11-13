@@ -1,8 +1,8 @@
-# Emberfall — voice-over (v3, **4:00**)
+# Emberfall — voice-over (explainer slides, **4:00**)
 
-**Video:** `demo-video/out/emberfall-demo-v3.mp4`  
-**Also:** `emberfall-demo-240s.mp4` · `emberfall-demo-v2.mp4`  
-**Runtime:** exactly **240 seconds** · light theme · real system UI (Chrome captures)
+**Video:** `demo-video/out/emberfall-explain-240s.mp4`  
+**Slides:** `demo-video/slides-explain/*.png`  
+**Style:** light theme · no system screenshots · silent (record VO separately)
 
 ---
 
@@ -10,75 +10,87 @@
 
 Emberfall. What NASA knows about fire in freefall.
 
-Thirteen hundred technical reports. Cited answers. Mission risk briefings.
+A cited, mission-aware knowledge engine over decades of research.
 
-Built by team runtime-terror for the NASA Space Apps Challenge.
+Team runtime-terror — NASA Space Apps twenty twenty-six.
 
-## 02 — Problem (0:18–0:38)
+## 02 — Problem (0:18–0:40)
 
-Fire in space does not behave like fire on Earth.
+Flames do not rise in space.
 
-Without gravity, flames don’t rise. They form slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate.
+Without gravity there is no buoyancy — flames grow into slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate.
 
-Artemis habitats plan higher oxygen at lower pressure — which makes materials easier to ignite.
+Artemis habitats plan higher oxygen at lower pressure, which makes materials easier to ignite.
 
-NASA has studied this since the nineteen fifties. The findings are real — but scattered across more than a thousand reports.
+NASA has studied this for seventy years. The answers exist — but they’re scattered across more than a thousand technical reports.
 
-## 03 — Home (0:38–1:00)
+## 03 — One question (0:40–0:58)
 
-This is Emberfall.
+Emberfall exists to answer one question well:
 
-One ask bar over the whole corpus. Explorer, Graph, Reports, Mission — and answers tuned for scientists, managers, architects, or students.
+What do we actually know about fire in freefall, how sure are we — and where are the gaps that matter for crew safety?
 
-Thirteen hundred thirty-four NASA reports, ready to query.
+## 04 — Scale (0:58–1:20)
 
-## 04 — Ask (1:00–1:26)
+Here’s the corpus behind the product.
 
-Ask a real question about flame spread in microgravity.
+One thousand three hundred thirty-four NASA reports. Over twenty thousand indexed passages. Eighteen hundred quote-verified findings. Fifty-eight open contradictions. Literature from nineteen fifty-five through twenty twenty-six.
 
-Emberfall streams a cited answer. Every claim points to a source you can open. When studies disagree, we surface that. When evidence is thin — we refuse.
+And in our evaluation: one hundred percent citation validity.
 
-Better silence than a confident hallucination.
+## 05 — How it works (1:20–1:42)
 
-## 05 — Graph (1:26–1:48)
+How Emberfall is built:
+
+We ingest from NASA’s Technical Reports Server, clean and chunk the text, then extract findings.
+
+A quote guard checks every claim. If it isn’t verbatim in the source — we discard it.
+
+What’s left becomes a structured knowledge base: ontology, graph, gaps, trends, and mission risks.
+
+## 06 — Ask (1:42–2:04)
+
+Ask is the front door.
+
+You ask a question. Emberfall streams a cited answer. Every sentence points to a real passage.
+
+Personas change the framing — scientist, manager, architect, or student.
+
+When evidence is thin, or the question is off-topic — we refuse. Better silence than a confident hallucination.
+
+## 07 — Graph (2:04–2:22)
 
 Answers aren’t the only view.
 
-The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures — the map of what the literature actually links together.
+The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures.
 
-## 06 — Insights (1:48–2:08)
+Links are ranked by how many reports support them. You explore paths — not just keyword hits.
 
-Agree and Disagree shows where reports clash — and why.
+## 08 — Gaps & conflicts (2:22–2:42)
 
-Real contradictions versus different fuels, freefall times, or platforms. So you can tell a genuine conflict from a difference in setup.
+Agree and Disagree shows where studies clash — and why. Real contradictions versus different fuels, freefall times, or platforms.
 
-## 07 — Gaps (2:08–2:28)
+The gap matrix highlights thin cells: fuel by condition. Those empty spots are research priorities for the next experiment.
 
-The evidence matrix highlights thin cells — fuel by condition.
-
-Those empty spots are research priorities: where the next drop-tower or orbital experiment should go.
-
-## 08 — Mission (2:28–2:54)
+## 09 — Mission (2:42–3:06)
 
 For habitat architects, the hero workflow is Mission.
 
-Pick Artemis. Emberfall returns a ranked fire-risk briefing: priority, exposure, evidence strength, conflicts, and untested conditions — exportable as a PDF.
+Pick ISS, Artemis, or Mars — or enter a custom oxygen and pressure profile.
 
-## 09 — Explorer (2:54–3:16)
+Emberfall returns a ranked fire-risk briefing: priority, evidence strength, supporting quotes, conflicts, and untested conditions — exportable as a PDF.
 
-Slide cabin oxygen and pressure.
-
-A model trained on published microgravity tests predicts the flame-spread regime — and cites the nearest NTRS experiments. Out-of-envelope inputs are refused.
-
-## 10 — Trust (3:16–3:34)
+## 10 — Trust (3:06–3:26)
 
 Trust is a product feature.
 
-Quote guard. Citation checks. Live evaluation. Emberfall helps decide which research to prioritize — it is not a certified hazard analysis.
+Quote-verified findings. Checked citations. A live evaluation page.
+
+Emberfall helps decide which research to prioritize. It is not a certified hazard analysis.
 
 When the literature doesn’t support an answer, we say so.
 
-## 11 — Who (3:34–3:48)
+## 11 — Who (3:26–3:42)
 
 One knowledge base — four ways in.
 
@@ -86,45 +98,59 @@ Scientists land in Ask and Graph. Managers start with Gaps. Architects open Miss
 
 Same evidence. The right framing for each job.
 
-## 12 — Close (3:48–4:00)
+## 12 — Close (3:42–4:00)
 
 Emberfall: cited knowledge, mission-ready.
 
-Team runtime-terror. NASA Space Apps twenty twenty-six. Thank you.
+Flame in freefall. Team runtime-terror. NASA Space Apps twenty twenty-six.
+
+Thank you.
 
 ---
 
 ## Full continuous read-through
 
-Emberfall. What NASA knows about fire in freefall. Thirteen hundred technical reports. Cited answers. Mission risk briefings. Built by team runtime-terror for the NASA Space Apps Challenge.
+Emberfall. What NASA knows about fire in freefall. A cited, mission-aware knowledge engine over decades of research. Team runtime-terror — NASA Space Apps twenty twenty-six.
 
-Fire in space does not behave like fire on Earth. Without gravity, flames don’t rise. They form slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate. Artemis habitats plan higher oxygen at lower pressure — which makes materials easier to ignite. NASA has studied this since the nineteen fifties. The findings are real — but scattered across more than a thousand reports.
+Flames do not rise in space. Without gravity there is no buoyancy — flames grow into slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate. Artemis habitats plan higher oxygen at lower pressure, which makes materials easier to ignite. NASA has studied this for seventy years. The answers exist — but they’re scattered across more than a thousand technical reports.
 
-This is Emberfall. One ask bar over the whole corpus. Explorer, Graph, Reports, Mission — and answers tuned for scientists, managers, architects, or students. Thirteen hundred thirty-four NASA reports, ready to query.
+Emberfall exists to answer one question well: What do we actually know about fire in freefall, how sure are we — and where are the gaps that matter for crew safety?
 
-Ask a real question about flame spread in microgravity. Emberfall streams a cited answer. Every claim points to a source you can open. When studies disagree, we surface that. When evidence is thin — we refuse. Better silence than a confident hallucination.
+Here’s the corpus behind the product. One thousand three hundred thirty-four NASA reports. Over twenty thousand indexed passages. Eighteen hundred quote-verified findings. Fifty-eight open contradictions. Literature from nineteen fifty-five through twenty twenty-six. And in our evaluation: one hundred percent citation validity.
 
-Answers aren’t the only view. The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures — the map of what the literature actually links together.
+How Emberfall is built: We ingest from NASA’s Technical Reports Server, clean and chunk the text, then extract findings. A quote guard checks every claim. If it isn’t verbatim in the source — we discard it. What’s left becomes a structured knowledge base: ontology, graph, gaps, trends, and mission risks.
 
-Agree and Disagree shows where reports clash — and why. Real contradictions versus different fuels, freefall times, or platforms. So you can tell a genuine conflict from a difference in setup.
+Ask is the front door. You ask a question. Emberfall streams a cited answer. Every sentence points to a real passage. Personas change the framing — scientist, manager, architect, or student. When evidence is thin, or the question is off-topic — we refuse. Better silence than a confident hallucination.
 
-The evidence matrix highlights thin cells — fuel by condition. Those empty spots are research priorities: where the next drop-tower or orbital experiment should go.
+Answers aren’t the only view. The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures. Links are ranked by how many reports support them. You explore paths — not just keyword hits.
 
-For habitat architects, the hero workflow is Mission. Pick Artemis. Emberfall returns a ranked fire-risk briefing: priority, exposure, evidence strength, conflicts, and untested conditions — exportable as a PDF.
+Agree and Disagree shows where studies clash — and why. Real contradictions versus different fuels, freefall times, or platforms. The gap matrix highlights thin cells: fuel by condition. Those empty spots are research priorities for the next experiment.
 
-Slide cabin oxygen and pressure. A model trained on published microgravity tests predicts the flame-spread regime — and cites the nearest NTRS experiments. Out-of-envelope inputs are refused.
+For habitat architects, the hero workflow is Mission. Pick ISS, Artemis, or Mars — or enter a custom oxygen and pressure profile. Emberfall returns a ranked fire-risk briefing: priority, evidence strength, supporting quotes, conflicts, and untested conditions — exportable as a PDF.
 
-Trust is a product feature. Quote guard. Citation checks. Live evaluation. Emberfall helps decide which research to prioritize — it is not a certified hazard analysis. When the literature doesn’t support an answer, we say so.
+Trust is a product feature. Quote-verified findings. Checked citations. A live evaluation page. Emberfall helps decide which research to prioritize. It is not a certified hazard analysis. When the literature doesn’t support an answer, we say so.
 
 One knowledge base — four ways in. Scientists land in Ask and Graph. Managers start with Gaps. Architects open Mission. Students get plain language. Same evidence. The right framing for each job.
 
-Emberfall: cited knowledge, mission-ready. Team runtime-terror. NASA Space Apps twenty twenty-six. Thank you.
+Emberfall: cited knowledge, mission-ready. Flame in freefall. Team runtime-terror. NASA Space Apps twenty twenty-six. Thank you.
 
 ---
 
-## Rebuild
+## Slide map
 
-```bash
-node demo-video/scripts/capture-ui.mjs   # needs make dev running
-node demo-video/scripts/build-v3.mjs
-```
+| Time | PNG | Topic |
+|------|-----|-------|
+| 0:00 | `slides-explain/01-title.png` | Title |
+| 0:18 | `02-problem.png` | Problem |
+| 0:40 | `03-question.png` | One question |
+| 0:58 | `04-scale.png` | Corpus stats |
+| 1:20 | `05-how.png` | How it works |
+| 1:42 | `06-ask.png` | Ask |
+| 2:04 | `07-graph.png` | Graph |
+| 2:22 | `08-gaps.png` | Gaps & conflicts |
+| 2:42 | `09-mission.png` | Mission |
+| 3:06 | `10-trust.png` | Trust |
+| 3:26 | `11-who.png` | Personas |
+| 3:42 | `12-close.png` | Close |
+
+Rebuild: `node demo-video/scripts/build-explain.mjs`

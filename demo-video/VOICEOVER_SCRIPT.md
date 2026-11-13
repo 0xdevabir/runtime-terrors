@@ -1,213 +1,130 @@
-# Emberfall — 240s voice-over script
+# Emberfall — voice-over (v3, **4:00**)
 
-**Total runtime:** 4:00 · **Pace:** calm, clear, documentary · **Tone:** confident, not hype  
-**Video file:** `demo-video/out/emberfall-demo-240s.mp4` (silent — record VO separately)  
-**Slides:** 12 × 20 seconds each
-
-Record in one take if possible. Soft music under VO is optional; keep it very low so citations and numbers stay clear.
+**Video:** `demo-video/out/emberfall-demo-v3.mp4`  
+**Also:** `emberfall-demo-240s.mp4` · `emberfall-demo-v2.mp4`  
+**Runtime:** exactly **240 seconds** · light theme · real system UI (Chrome captures)
 
 ---
 
-## Slide 01 — Title (0:00–0:20)
+## 01 — Title (0:00–0:18)
 
-Emberfall. Flame in freefall.
+Emberfall. What NASA knows about fire in freefall.
 
-We turned seventy years of NASA fire-safety research into one cited, mission-aware knowledge engine.
+Thirteen hundred technical reports. Cited answers. Mission risk briefings.
 
 Built by team runtime-terror for the NASA Space Apps Challenge.
 
-**[~38 words]**
-
----
-
-## Slide 02 — The problem (0:20–0:40)
+## 02 — Problem (0:18–0:38)
 
 Fire in space does not behave like fire on Earth.
 
-Without gravity, flames don’t rise. They grow into slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate.
+Without gravity, flames don’t rise. They form slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate.
 
-And Artemis habitats plan to run with more oxygen at lower pressure — which makes materials easier to ignite.
+Artemis habitats plan higher oxygen at lower pressure — which makes materials easier to ignite.
 
-**[~55 words]**
+NASA has studied this since the nineteen fifties. The findings are real — but scattered across more than a thousand reports.
 
----
+## 03 — Home (0:38–1:00)
 
-## Slide 03 — The challenge (0:40–1:00)
+This is Emberfall.
 
-NASA’s challenge asked for an AI tool that turns microgravity combustion data into fire-safety insights.
+One ask bar over the whole corpus. Explorer, Graph, Reports, Mission — and answers tuned for scientists, managers, architects, or students.
 
-Not another chatbot. Something accessible, relevant to spacecraft, and trustworthy — for scientists, engineers, and the public.
+Thirteen hundred thirty-four NASA reports, ready to query.
 
-That is what Emberfall is built to do.
+## 04 — Ask (1:00–1:26)
 
-**[~48 words]**
+Ask a real question about flame spread in microgravity.
 
----
+Emberfall streams a cited answer. Every claim points to a source you can open. When studies disagree, we surface that. When evidence is thin — we refuse.
 
-## Slide 04 — Scale (1:00–1:20)
+Better silence than a confident hallucination.
 
-Here’s the corpus behind the product.
-
-One thousand three hundred thirty-four NASA NTRS reports. Over twenty thousand indexed passages. Eighteen hundred quote-verified findings. Fifty-eight open contradictions surfaced automatically. Literature from nineteen fifty-five through twenty twenty-six.
-
-And in our evaluation suite: one hundred percent citation validity.
-
-**[~55 words]**
-
----
-
-## Slide 05 — Pipeline (1:20–1:40)
-
-How it works: we ingest from NASA’s Technical Reports Server, clean and chunk the text, then extract findings.
-
-A quote guard checks every claim against the source. If it isn’t verbatim in the literature — we discard it.
-
-What’s left becomes a structured knowledge base: graph, consensus, gaps, trends, and mission risks — served through a FastAPI backend and a Next.js app.
-
-**[~70 words]**
-
----
-
-## Slide 06 — Ask (system UI) (1:40–2:00)
-
-Ask is the front door.
-
-You type a question about fire in space. Emberfall streams a cited answer. Every sentence points to a real passage you can open. Personas change the framing — scientist, safety manager, or habitat architect.
-
-If the evidence is thin, or the question is off-topic — we refuse. Better silence than a confident hallucination.
-
-**[~65 words]**
-
----
-
-## Slide 07 — Graph (system UI) (2:00–2:20)
+## 05 — Graph (1:26–1:48)
 
 Answers aren’t the only view.
 
-The knowledge graph shows how fuels, cabin conditions, geometries, outcomes, and countermeasures connect across the literature.
+The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures — the map of what the literature actually links together.
 
-As you explore — or as an answer streams — the concepts that matter light up. It’s the visual map of what NASA’s reports actually link together.
+## 06 — Insights (1:48–2:08)
 
-**[~55 words]**
+Agree and Disagree shows where reports clash — and why.
 
----
+Real contradictions versus different fuels, freefall times, or platforms. So you can tell a genuine conflict from a difference in setup.
 
-## Slide 08 — Gaps & insights (system UI) (2:20–2:40)
+## 07 — Gaps (2:08–2:28)
 
-Emberfall also shows where the research is thin — and where studies disagree.
+The evidence matrix highlights thin cells — fuel by condition.
 
-A gap matrix highlights fuel and condition combinations that lack evidence. Insights surfaces contradictions. Hypotheses proposes literature-based next questions.
+Those empty spots are research priorities: where the next drop-tower or orbital experiment should go.
 
-So program managers and scientists can see not just what we know — but what we still need to test.
-
-**[~58 words]**
-
----
-
-## Slide 09 — Mission briefing (system UI) (2:40–3:00)
+## 08 — Mission (2:28–2:54)
 
 For habitat architects, the hero workflow is Mission.
 
-Pick ISS, Artemis, or Mars — or enter a custom oxygen percent, pressure, and mission duration.
+Pick Artemis. Emberfall returns a ranked fire-risk briefing: priority, exposure, evidence strength, conflicts, and untested conditions — exportable as a PDF.
 
-Emberfall returns a ranked fire-risk briefing: evidence strength, supporting quotes, countermeasures, open contradictions, and untested conditions — exportable as a PDF.
+## 09 — Explorer (2:54–3:16)
 
-**[~58 words]**
+Slide cabin oxygen and pressure.
 
----
+A model trained on published microgravity tests predicts the flame-spread regime — and cites the nearest NTRS experiments. Out-of-envelope inputs are refused.
 
-## Slide 10 — Trust (3:00–3:20)
+## 10 — Trust (3:16–3:34)
 
-Trust is not a footnote. It’s a product feature.
+Trust is a product feature.
 
-Quote-verified findings. Checked citations. A live evaluation page. And a hard rule: Emberfall helps decide which research to prioritize — it is not a certified hazard analysis.
+Quote guard. Citation checks. Live evaluation. Emberfall helps decide which research to prioritize — it is not a certified hazard analysis.
 
 When the literature doesn’t support an answer, we say so.
 
-**[~52 words]**
-
----
-
-## Slide 11 — Who it’s for (3:20–3:40)
+## 11 — Who (3:34–3:48)
 
 One knowledge base — four ways in.
 
-Combustion scientists land in Ask, Graph, and Hypotheses.  
-Safety managers start with Gaps and Trends.  
-Habitat architects open Mission.  
-Educators and the public get a glossary and plain-language answers.
+Scientists land in Ask and Graph. Managers start with Gaps. Architects open Mission. Students get plain language.
 
 Same evidence. The right framing for each job.
 
-**[~55 words]**
+## 12 — Close (3:48–4:00)
+
+Emberfall: cited knowledge, mission-ready.
+
+Team runtime-terror. NASA Space Apps twenty twenty-six. Thank you.
 
 ---
 
-## Slide 12 — Close (3:40–4:00)
+## Full continuous read-through
 
-Emberfall: flame in freefall.
+Emberfall. What NASA knows about fire in freefall. Thirteen hundred technical reports. Cited answers. Mission risk briefings. Built by team runtime-terror for the NASA Space Apps Challenge.
 
-Cited knowledge for spacecraft fire safety — from decades of NASA research, ready for the next habitat.
+Fire in space does not behave like fire on Earth. Without gravity, flames don’t rise. They form slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate. Artemis habitats plan higher oxygen at lower pressure — which makes materials easier to ignite. NASA has studied this since the nineteen fifties. The findings are real — but scattered across more than a thousand reports.
 
-Live demo, open source, NASA Space Apps twenty twenty-six.
+This is Emberfall. One ask bar over the whole corpus. Explorer, Graph, Reports, Mission — and answers tuned for scientists, managers, architects, or students. Thirteen hundred thirty-four NASA reports, ready to query.
 
-Team runtime-terror. Thank you.
+Ask a real question about flame spread in microgravity. Emberfall streams a cited answer. Every claim points to a source you can open. When studies disagree, we surface that. When evidence is thin — we refuse. Better silence than a confident hallucination.
 
-**[~42 words]**
+Answers aren’t the only view. The knowledge graph connects fuels, cabin conditions, geometries, outcomes, and countermeasures — the map of what the literature actually links together.
 
----
+Agree and Disagree shows where reports clash — and why. Real contradictions versus different fuels, freefall times, or platforms. So you can tell a genuine conflict from a difference in setup.
 
-## Full continuous script (read-through)
+The evidence matrix highlights thin cells — fuel by condition. Those empty spots are research priorities: where the next drop-tower or orbital experiment should go.
 
-Emberfall. Flame in freefall. We turned seventy years of NASA fire-safety research into one cited, mission-aware knowledge engine. Built by team runtime-terror for the NASA Space Apps Challenge.
+For habitat architects, the hero workflow is Mission. Pick Artemis. Emberfall returns a ranked fire-risk briefing: priority, exposure, evidence strength, conflicts, and untested conditions — exportable as a PDF.
 
-Fire in space does not behave like fire on Earth. Without gravity, flames don’t rise. They grow into slow, nearly invisible spheres. The cabin air is a closed loop. Crews can’t evacuate. And Artemis habitats plan to run with more oxygen at lower pressure — which makes materials easier to ignite.
+Slide cabin oxygen and pressure. A model trained on published microgravity tests predicts the flame-spread regime — and cites the nearest NTRS experiments. Out-of-envelope inputs are refused.
 
-NASA’s challenge asked for an AI tool that turns microgravity combustion data into fire-safety insights. Not another chatbot. Something accessible, relevant to spacecraft, and trustworthy — for scientists, engineers, and the public. That is what Emberfall is built to do.
+Trust is a product feature. Quote guard. Citation checks. Live evaluation. Emberfall helps decide which research to prioritize — it is not a certified hazard analysis. When the literature doesn’t support an answer, we say so.
 
-Here’s the corpus behind the product. One thousand three hundred thirty-four NASA NTRS reports. Over twenty thousand indexed passages. Eighteen hundred quote-verified findings. Fifty-eight open contradictions surfaced automatically. Literature from nineteen fifty-five through twenty twenty-six. And in our evaluation suite: one hundred percent citation validity.
+One knowledge base — four ways in. Scientists land in Ask and Graph. Managers start with Gaps. Architects open Mission. Students get plain language. Same evidence. The right framing for each job.
 
-How it works: we ingest from NASA’s Technical Reports Server, clean and chunk the text, then extract findings. A quote guard checks every claim against the source. If it isn’t verbatim in the literature — we discard it. What’s left becomes a structured knowledge base: graph, consensus, gaps, trends, and mission risks — served through a FastAPI backend and a Next.js app.
-
-Ask is the front door. You type a question about fire in space. Emberfall streams a cited answer. Every sentence points to a real passage you can open. Personas change the framing — scientist, safety manager, or habitat architect. If the evidence is thin, or the question is off-topic — we refuse. Better silence than a confident hallucination.
-
-Answers aren’t the only view. The knowledge graph shows how fuels, cabin conditions, geometries, outcomes, and countermeasures connect across the literature. As you explore — or as an answer streams — the concepts that matter light up. It’s the visual map of what NASA’s reports actually link together.
-
-Emberfall also shows where the research is thin — and where studies disagree. A gap matrix highlights fuel and condition combinations that lack evidence. Insights surfaces contradictions. Hypotheses proposes literature-based next questions. So program managers and scientists can see not just what we know — but what we still need to test.
-
-For habitat architects, the hero workflow is Mission. Pick ISS, Artemis, or Mars — or enter a custom oxygen percent, pressure, and mission duration. Emberfall returns a ranked fire-risk briefing: evidence strength, supporting quotes, countermeasures, open contradictions, and untested conditions — exportable as a PDF.
-
-Trust is not a footnote. It’s a product feature. Quote-verified findings. Checked citations. A live evaluation page. And a hard rule: Emberfall helps decide which research to prioritize — it is not a certified hazard analysis. When the literature doesn’t support an answer, we say so.
-
-One knowledge base — four ways in. Combustion scientists land in Ask, Graph, and Hypotheses. Safety managers start with Gaps and Trends. Habitat architects open Mission. Educators and the public get a glossary and plain-language answers. Same evidence. The right framing for each job.
-
-Emberfall: flame in freefall. Cited knowledge for spacecraft fire safety — from decades of NASA research, ready for the next habitat. Live demo, open source, NASA Space Apps twenty twenty-six. Team runtime-terror. Thank you.
+Emberfall: cited knowledge, mission-ready. Team runtime-terror. NASA Space Apps twenty twenty-six. Thank you.
 
 ---
 
-## Recording tips
+## Rebuild
 
-| Tip | Detail |
-|-----|--------|
-| Timing | Aim ~2.5–3 words/sec; leave ~1–2s breath at each slide cut |
-| Numbers | Speak “one thousand three hundred thirty-four” (or “thirteen thirty-four reports”) — pick one style and stick to it |
-| Swap real UI | When the app is running, replace mock panels (slides 06–09) with real screenshots named the same PNGs and re-run `node demo-video/scripts/build-slides.mjs` — or drop screenshots into `slides/` and rebuild concat only |
-| Music | Optional bed under −20 dB; duck under spoken numbers |
-| Captions | Burn captions later from this script if Space Apps requires accessibility |
-
-## Slide ↔ file map
-
-| Time | File | Topic |
-|------|------|-------|
-| 0:00 | `slides/01-title.png` | Title |
-| 0:20 | `slides/02-problem.png` | Problem |
-| 0:40 | `slides/03-challenge.png` | Challenge |
-| 1:00 | `slides/04-scale.png` | Corpus stats |
-| 1:20 | `slides/05-pipeline.png` | Pipeline |
-| 1:40 | `slides/06-ask.png` | Ask UI |
-| 2:00 | `slides/07-graph.png` | Graph UI |
-| 2:20 | `slides/08-gaps.png` | Gaps UI |
-| 2:40 | `slides/09-mission.png` | Mission UI |
-| 3:00 | `slides/10-trust.png` | Trust |
-| 3:20 | `slides/11-who.png` | Personas |
-| 3:40 | `slides/12-close.png` | Close |
+```bash
+node demo-video/scripts/capture-ui.mjs   # needs make dev running
+node demo-video/scripts/build-v3.mjs
+```
